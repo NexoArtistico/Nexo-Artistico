@@ -991,6 +991,10 @@ body.comic-active{overflow:hidden;}
     if (cfg.logo) {
       qa("#m-logo-1, #m-logo-2").forEach(function (img) { img.src = cfg.logo; });
       var favicon = document.querySelector('link[rel="icon"]'); if (favicon) favicon.href = cfg.logo;
+      window.NEXO_LOGO_URL = cfg.logo;
+      if (window.prTemplatesApp && typeof window.prTemplatesApp.setLogoUrl === "function") {
+        window.prTemplatesApp.setLogoUrl(cfg.logo);
+      }
     }
     return cfg;
   }
@@ -1979,7 +1983,8 @@ body.comic-active{overflow:hidden;}
        importar el colorway activo. Se remapea aquí para que tome fondo, tarjeta, borde y acento
        reales del tema activo (Clásico, Clásico Rojo, Clásico Océano o Neón). -->
   <style>
-    body.clasico .gm-wrap, body.neon .gm-wrap{
+    body.clasico .gm-wrap, body.neon .gm-wrap,
+    body.clasico #pr-templates-details, body.neon #pr-templates-details{
       --ink: var(--theme-text, #151414);
       --paper: var(--theme-bg, #f4f3ef);
       --paper-2: color-mix(in srgb, var(--theme-surface, #ececee) 70%, var(--theme-bg, #f4f3ef));
@@ -1996,9 +2001,13 @@ body.comic-active{overflow:hidden;}
   .gm-wrap{max-width:var(--maxw,1200px);margin:40px auto;padding:0 24px;}
   @media(max-width:480px){.gm-wrap{padding:0 16px;}}
   .gm-details{border:2px solid var(--line,#151414);border-radius:14px;background:var(--card,#fff);overflow:hidden;}
-  .gm-summary{cursor:pointer;list-style:none;padding:18px 22px;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--paper-2,#ececee);user-select:none;}
+  .gm-summary{cursor:pointer;list-style:none;padding:18px 22px;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--paper-2,#ececee);user-select:none;flex-wrap:wrap;}
   .gm-summary::-webkit-details-marker{display:none;}
+  .gm-summary > span{min-width:0;word-break:break-word;}
   .gm-summary .gm-chev{transition:transform .2s ease;width:16px;height:16px;flex-shrink:0;}
+  @media(max-width:480px){.gm-summary{padding:14px 16px;font-size:13.5px;gap:8px;}}
+  @media(max-width:1264px){#pr-templates-details{margin-left:24px !important;margin-right:24px !important;max-width:calc(100% - 48px) !important;}}
+  @media(max-width:480px){#pr-templates-details{margin-left:16px !important;margin-right:16px !important;max-width:calc(100% - 32px) !important;}}
   .gm-details[open] .gm-chev{transform:rotate(180deg);}
   .gm-body{padding:22px;display:flex;flex-direction:column;gap:18px;}
   .gm-drop{border:2px dashed var(--muted-2,#a6a4ac);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:border-color .15s ease,background .15s ease;}
@@ -2247,6 +2256,4321 @@ body.comic-active{overflow:hidden;}
 })();
 </script>
   <!-- ===================== /GRID MAKER ===================== -->
+  <!-- ===================== PLANTILLAS PARA REDES (generador de imágenes) =====================
+       Segunda herramienta secreta, adaptada de la antigua página (PR.html). Todo su CSS está
+       escopado bajo #pr-templates-scope para no afectar el resto del sitio, y su JS corre en un
+       IIFE aislado. El logo que dibuja en cada plantilla es el logo real de la comunidad (mismo
+       que config.csv define en la clave "logo"), no texto — y ningún campo trae nombres de
+       ejemplo precargados: todos parten vacíos con placeholder. -->
+  <style>
+#pr-templates-scope {
+
+  --primary-color: #7c3aed;
+  --primary-light: #8b5cf6;
+  --primary-dark: #6d28d9;
+  --secondary-color: #f59e0b;
+  --accent-color: #10b981;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-light: #9ca3af;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-accent: #f3f4f6;
+  --border-color: #e5e7eb;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --gradient-primary: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+  --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-accent: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color-scheme: light;
+}
+#pr-templates-scope[data-theme="dark"] {
+
+  color-scheme: dark;
+  --primary-color: #8b5cf6;
+  --primary-light: #a78bfa;
+  --primary-dark: #7c3aed;
+  --secondary-color: #fbbf24;
+  --accent-color: #34d399;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-light: #94a3b8;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-accent: #334155;
+  --border-color: #475569;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+#pr-templates-scope * {
+
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+#pr-templates-scope {
+
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  transition: all 0.3s ease;
+}
+#pr-templates-scope .app-container {
+
+  min-height: 100vh;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+#pr-templates-scope .app-header {
+
+  text-align: center;
+  margin-bottom: 3rem;
+}
+#pr-templates-scope .header-content .logo {
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+#pr-templates-scope .logo i {
+
+  font-size: 2.5rem;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+#pr-templates-scope .logo h1 {
+
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+#pr-templates-scope .subtitle {
+
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+}
+#pr-templates-scope .controls-section {
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 3rem;
+  flex-wrap: wrap;
+}
+#pr-templates-scope .template-tabs {
+
+  display: flex;
+  background: var(--bg-primary);
+  border-radius: 12px;
+  padding: 0.5rem;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-color);
+}
+#pr-templates-scope .tab-btn {
+
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+}
+#pr-templates-scope .tab-btn:hover {
+
+  color: var(--text-primary);
+  background: var(--bg-accent);
+}
+#pr-templates-scope .tab-btn.active {
+
+  background: var(--gradient-primary);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+#pr-templates-scope .aspect-ratio-selector {
+
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  box-shadow: var(--shadow-md);
+}
+#pr-templates-scope .aspect-ratio-selector label {
+
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+#pr-templates-scope .aspect-ratio-selector select {
+
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  min-width: 180px;
+}
+#pr-templates-scope .theme-toggle {
+
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-md);
+}
+#pr-templates-scope .theme-toggle:hover {
+
+  background: var(--bg-accent);
+  transform: translateY(-2px);
+}
+#pr-templates-scope .main-content {
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: start;
+}
+#pr-templates-scope .config-panel {
+
+  background: var(--bg-primary);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border-color);
+}
+#pr-templates-scope .config-panel h2 {
+
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2rem;
+}
+#pr-templates-scope .config-panel h2 i {
+
+  color: var(--primary-color);
+}
+#pr-templates-scope .template-config {
+
+  display: none;
+}
+#pr-templates-scope .template-config.active {
+
+  display: block;
+}
+#pr-templates-scope .form-group {
+
+  margin-bottom: 1.5rem;
+}
+#pr-templates-scope .form-row {
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+#pr-templates-scope .form-row.three-cols {
+
+  grid-template-columns: 1fr 1fr 1fr;
+}
+#pr-templates-scope label {
+
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+#pr-templates-scope input[type="text"],
+#pr-templates-scope input[type="number"],
+#pr-templates-scope select,
+#pr-templates-scope textarea {
+
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+#pr-templates-scope input[type="text"]:focus,
+#pr-templates-scope input[type="number"]:focus,
+#pr-templates-scope select:focus,
+#pr-templates-scope textarea:focus {
+
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+#pr-templates-scope select {
+
+  appearance: auto;
+}
+#pr-templates-scope select option {
+
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+#pr-templates-scope textarea {
+
+  resize: vertical;
+  min-height: 80px;
+}
+#pr-templates-scope .file-input-wrapper {
+
+  position: relative;
+}
+#pr-templates-scope .file-input-wrapper input[type="file"] {
+
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+#pr-templates-scope .file-input-display {
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-accent);
+  color: var(--text-secondary);
+  font-weight: 500;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+#pr-templates-scope .file-input-display:hover {
+
+  border-color: var(--primary-color);
+  background: var(--bg-primary);
+  color: var(--primary-color);
+}
+#pr-templates-scope .file-input-display i {
+
+  font-size: 1.2rem;
+}
+#pr-templates-scope .adjust-image-btn {
+
+  position: relative;
+  z-index: 5;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--primary-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--primary-color);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+#pr-templates-scope .adjust-image-btn:hover {
+
+  background: var(--primary-color);
+  color: #fff;
+}
+#pr-templates-scope .image-adjust-modal {
+
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+#pr-templates-scope .image-adjust-modal.show {
+
+  display: flex;
+}
+#pr-templates-scope .image-adjust-content {
+
+  background: var(--bg-primary);
+  border-radius: 16px;
+  padding: 1.5rem;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border-color);
+}
+#pr-templates-scope .image-adjust-content h3 {
+
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+#pr-templates-scope .image-adjust-content h3 i {
+
+  color: var(--primary-color);
+}
+#pr-templates-scope .image-adjust-viewport {
+
+  position: relative;
+  overflow: hidden;
+  margin: 0 auto 1rem;
+  border-radius: 12px;
+  background: var(--bg-accent);
+  border: 2px solid var(--border-color);
+  cursor: grab;
+  touch-action: none;
+}
+#pr-templates-scope .image-adjust-viewport.dragging {
+
+  cursor: grabbing;
+}
+#pr-templates-scope .image-adjust-viewport img {
+
+  position: absolute;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+  max-width: none;
+  image-rendering: auto;
+  will-change: transform;
+}
+#pr-templates-scope .image-adjust-controls {
+
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+}
+#pr-templates-scope .image-adjust-controls input[type="range"] {
+
+  flex: 1;
+}
+#pr-templates-scope .image-adjust-hint {
+
+  font-size: 0.8rem;
+  color: var(--text-light);
+  text-align: center;
+  margin-bottom: 1rem;
+}
+#pr-templates-scope .image-adjust-actions {
+
+  display: flex;
+  gap: 0.75rem;
+}
+#pr-templates-scope .image-adjust-actions button {
+
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s ease;
+}
+#pr-templates-scope .image-adjust-actions .btn-secondary {
+
+  background: var(--bg-accent);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+#pr-templates-scope .image-adjust-actions .btn-secondary:hover {
+
+  background: var(--border-color);
+}
+#pr-templates-scope .image-adjust-actions .btn-primary {
+
+  background: var(--gradient-primary);
+  color: #fff;
+}
+#pr-templates-scope .image-adjust-actions .btn-primary:hover {
+
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+#pr-templates-scope .preview-panel {
+
+  background: var(--bg-primary);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border-color);
+  position: sticky;
+  top: 2rem;
+}
+#pr-templates-scope .preview-header {
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+#pr-templates-scope .preview-header h2 {
+
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+#pr-templates-scope .preview-header h2 i {
+
+  color: var(--primary-color);
+}
+#pr-templates-scope .download-btn {
+
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-md);
+}
+#pr-templates-scope .download-btn:hover {
+
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+#pr-templates-scope .download-btn:active {
+
+  transform: translateY(0);
+}
+#pr-templates-scope .preview-container {
+
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--bg-accent);
+}
+#pr-templates-scope #previewCanvas {
+
+  max-width: 100%;
+  max-height: 600px;
+  display: block;
+  background: transparent;
+}
+@media (max-width: 1200px) {#pr-templates-scope .main-content {
+
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+#pr-templates-scope .preview-panel {
+
+    position: static;
+  }
+
+}
+@media (max-width: 768px) {#pr-templates-scope .app-container {
+
+    padding: 1rem;
+  }
+#pr-templates-scope .controls-section {
+
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+#pr-templates-scope .template-tabs {
+
+    width: 100%;
+    justify-content: center;
+  }
+#pr-templates-scope .aspect-ratio-selector,
+#pr-templates-scope .theme-toggle {
+
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: center;
+  }
+#pr-templates-scope .aspect-ratio-selector select {
+
+    min-width: 0;
+    flex: 1;
+  }
+#pr-templates-scope .tab-btn {
+
+    flex: 1;
+    justify-content: center;
+  }
+#pr-templates-scope .form-row {
+
+    grid-template-columns: 1fr;
+  }
+#pr-templates-scope .form-row.three-cols {
+
+    grid-template-columns: 1fr;
+  }
+#pr-templates-scope .config-panel,
+#pr-templates-scope .preview-panel {
+
+    padding: 1.5rem;
+  }
+#pr-templates-scope .logo h1 {
+
+    font-size: 2rem;
+  }
+#pr-templates-scope .subtitle {
+
+    font-size: 1rem;
+  }
+
+}
+@media (max-width: 480px) {#pr-templates-scope .app-container {
+
+    padding: 0.5rem;
+  }
+#pr-templates-scope .config-panel,
+#pr-templates-scope .preview-panel {
+
+    padding: 1rem;
+  }
+#pr-templates-scope .logo {
+
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+#pr-templates-scope .logo h1 {
+
+    font-size: 1.5rem;
+  }
+#pr-templates-scope .tab-btn {
+
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+}
+#pr-templates-scope .loading {
+
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+@keyframes spin {to {
+    transform: rotate(360deg);
+  }
+
+}
+#pr-templates-scope .success-message {
+
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  background: var(--accent-color);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+#pr-templates-scope .success-message.show {
+
+  transform: translateX(0);
+}
+#pr-templates-scope .add-btn {
+
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+  width: 100%;
+  justify-content: center;
+}
+#pr-templates-scope .add-btn:hover {
+
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+#pr-templates-scope .qa-pair {
+
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: var(--bg-accent);
+  position: relative;
+}
+#pr-templates-scope .qa-pair .remove-qa-btn {
+
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#pr-templates-scope .qa-pair .remove-qa-btn:hover {
+
+  background: #dc2626;
+}
+#pr-templates-scope .image-input-group {
+
+  margin-bottom: 1rem;
+}
+#pr-templates-scope .vs-artist-heading {
+
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 1.5rem 0 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-color);
+}
+#pr-templates-scope .vs-artist-heading:first-of-type {
+
+  margin-top: 0.5rem;
+}
+#pr-templates-scope .bracket-round-title {
+
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 1.5rem 0 0.75rem;
+}
+#pr-templates-scope .bracket-match {
+
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: var(--bg-accent);
+}
+#pr-templates-scope .bracket-match .form-group {
+
+  margin-bottom: 0.75rem;
+}
+#pr-templates-scope .bracket-match .form-group:last-child {
+
+  margin-bottom: 0;
+}
+#pr-templates-scope #bracket-champion-display {
+
+  display: block;
+  text-align: center;
+  font-size: 1.05rem;
+  color: var(--secondary-color);
+  margin-top: 0.5rem;
+}
+#pr-templates-scope .collage-img-item {
+
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--bg-accent);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+#pr-templates-scope .collage-img-item .collage-img-thumb {
+
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 2px solid var(--primary-color);
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+}
+#pr-templates-scope .collage-img-item .collage-img-placeholder {
+
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-light);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+#pr-templates-scope .collage-img-item .collage-img-info {
+
+  flex: 1;
+  min-width: 0;
+}
+#pr-templates-scope .collage-img-item .collage-img-label {
+
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#pr-templates-scope .collage-img-item .collage-img-sublabel {
+
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+#pr-templates-scope .collage-img-item .collage-img-actions {
+
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+#pr-templates-scope .collage-img-actions button {
+
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+#pr-templates-scope .collage-img-actions .btn-upload-collage {
+
+  background: var(--primary-color);
+  color: white;
+}
+#pr-templates-scope .collage-img-actions .btn-upload-collage:hover {
+
+  background: var(--primary-dark);
+}
+#pr-templates-scope .collage-img-actions .btn-remove-collage {
+
+  background: #ef4444;
+  color: white;
+}
+#pr-templates-scope .collage-img-actions .btn-remove-collage:hover {
+
+  background: #dc2626;
+}
+#pr-templates-scope .collage-img-actions .btn-adjust-collage {
+
+  background: var(--bg-primary);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color) !important;
+}
+#pr-templates-scope .collage-img-actions .btn-adjust-collage:hover {
+
+  background: var(--primary-color);
+  color: white;
+}
+
+
+
+  </style>
+  <details class="gm-details" id="pr-templates-details" style="margin-top:24px;max-width:1200px;margin-left:auto;margin-right:auto;">
+    <summary class="gm-summary">
+      <span>🖌️ Plantillas para Redes — Generador de imágenes (torneo, publicación, entrevista, VS, bracket, collage)</span>
+      <svg class="gm-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+    </summary>
+    <div class="gm-body" style="padding:0;">
+    <div class="app-container" id="pr-templates-scope">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-palette"></i>
+                    <h1>Plantillas para Redes</h1>
+                </div>
+                <p class="subtitle">Crea contenido para redes sociales con la identidad visual de la comunidad</p>
+            </div>
+        </header>
+
+        <!-- Controls -->
+        <div class="controls-section">
+            <div class="template-tabs">
+                <button class="tab-btn active" data-template="torneo">
+                    <i class="fas fa-trophy"></i>
+                    Torneo
+                </button>
+                <button class="tab-btn" data-template="publicacion">
+                    <i class="fas fa-image"></i>
+                    Publicación
+                </button>
+                <button class="tab-btn" data-template="entrevista">
+                    <i class="fas fa-comments"></i>
+                    Entrevista
+                </button>
+                <button class="tab-btn" data-template="vs">
+                    <i class="fas fa-bolt"></i>
+                    VS
+                </button>
+                <button class="tab-btn" data-template="bracket">
+                    <i class="fas fa-sitemap"></i>
+                    Bracket
+                </button>
+                <button class="tab-btn" data-template="collage">
+                    <i class="fas fa-th"></i>
+                    Collage
+                </button>
+            </div>
+
+            <div class="aspect-ratio-selector">
+                <label for="canvas-aspect">Relación de aspecto:</label>
+                <select id="canvas-aspect">
+                    <option value="4:3" selected>4:3 (Horizontal)</option>
+                    <option value="16:9">16:9 (Panorámico)</option>
+                    <option value="1:1">1:1 (Cuadrado)</option>
+                    <option value="9:16">9:16 (Vertical móvil)</option>
+                    <option value="3:4">3:4 (Vertical)</option>
+                </select>
+            </div>
+            
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+                <span>Modo Oscuro</span>
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Configuration Panel -->
+            <div class="config-panel">
+                <h2><i class="fas fa-cog"></i> Configuración</h2>
+                
+                <!-- Torneo Template Config -->
+                <div class="template-config active" id="torneo-config">
+                    <div class="form-group">
+                        <label>Imagen de la obra</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="torneo-imagen" accept="image/*">
+                            <div class="file-input-display">
+                                <i class="fas fa-upload"></i>
+                                <span>Seleccionar imagen</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Relación de aspecto de la imagen</label>
+                        <select id="torneo-aspecto">
+                            <option value="1:1">Cuadrado (1:1)</option>
+                            <option value="4:3">Horizontal (4:3)</option>
+                            <option value="3:4">Vertical (3:4)</option>
+                            <option value="16:9">Panorámico (16:9)</option>
+                            <option value="9:16">Vertical móvil (9:16)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Artista</label>
+                            <input type="text" id="torneo-artista" value="" placeholder="Nombre del artista">
+                        </div>
+                        <div class="form-group">
+                            <label>Posición</label>
+                            <select id="torneo-posicion">
+                                <option value="1er">🥇 1er Lugar</option>
+                                <option value="2do">🥈 2do Lugar</option>
+                                <option value="3er">🥉 3er Lugar</option>
+                                <option value="4to">🏅 4to Lugar</option>
+                                <option value="5to">🏅 5to Lugar</option>
+                                <option value="6to">🏅 6to Lugar</option>
+                                <option value="7mo">🏅 7mo Lugar</option>
+                                <option value="8vo">🏅 8vo Lugar</option>
+                                <option value="9no">🏅 9no Lugar</option>
+                                <option value="10mo">🏅 10mo Lugar</option>
+                                <option value="11vo">11vo Lugar</option>
+                                <option value="12vo">12vo Lugar</option>
+                                <option value="13vo">13vo Lugar</option>
+                                <option value="14vo">14vo Lugar</option>
+                                <option value="15vo">15vo Lugar</option>
+                                <option value="16vo">16vo Lugar</option>
+                                <option value="17vo">17vo Lugar</option>
+                                <option value="18vo">18vo Lugar</option>
+                                <option value="19vo">19vo Lugar</option>
+                                <option value="20vo">20vo Lugar</option>
+                                <option value="21vo">21vo Lugar</option>
+                                <option value="22vo">22vo Lugar</option>
+                                <option value="23vo">23vo Lugar</option>
+                                <option value="24vo">24vo Lugar</option>
+                                <option value="25vo">25vo Lugar</option>
+                                <option value="26vo">26vo Lugar</option>
+                                <option value="27vo">27vo Lugar</option>
+                                <option value="28vo">28vo Lugar</option>
+                                <option value="29vo">29vo Lugar</option>
+                                <option value="30vo">30vo Lugar</option>
+                                <option value="31vo">31vo Lugar</option>
+                                <option value="32vo">32vo Lugar</option>
+                                <option value="33vo">33vo Lugar</option>
+                                <option value="34vo">34vo Lugar</option>
+                                <option value="35vo">35vo Lugar</option>
+                                <option value="36vo">36vo Lugar</option>
+                                <option value="37vo">37vo Lugar</option>
+                                <option value="38vo">38vo Lugar</option>
+                                <option value="39vo">39vo Lugar</option>
+                                <option value="40vo">40vo Lugar</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Foto de perfil del artista</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="torneo-perfil" accept="image/*">
+                            <div class="file-input-display">
+                                <i class="fas fa-user"></i>
+                                <span>Seleccionar foto de perfil</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Calificación Total</label>
+                            <input type="number" id="torneo-total" value="9.5" min="0" max="10" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Rol</label>
+                            <select id="torneo-rol">
+                                <option value="founder">Fundador</option>
+                                <option value="admin" selected>Admin</option>
+                                <option value="member">Miembro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row three-cols">
+                        <div class="form-group">
+                            <label>Impacto Escénico</label>
+                            <input type="number" id="torneo-impacto" value="9.2" min="0" max="10" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Ambientación</label>
+                            <input type="number" id="torneo-ambientacion" value="9.8" min="0" max="10" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Originalidad</label>
+                            <input type="number" id="torneo-originalidad" value="9.5" min="0" max="10" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="form-row three-cols">
+                        <div class="form-group">
+                            <label>Coloreo
+                                Delineado</label>
+                            <input type="number" id="torneo-coloreo" value="9.3" min="0" max="10" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Dificultad</label>
+                            <input type="number" id="torneo-dificultad" value="9.0" min="0" max="10" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Dinamismo</label>
+                            <input type="number" id="torneo-dinamismo" value="9.7" min="0" max="10" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Especialidad</label>
+                        <input type="text" id="torneo-especialidad" value="" placeholder="Especialidad del artista">
+                    </div>
+                </div>
+
+                <!-- Publicacion Template Config -->
+                <div class="template-config" id="publicacion-config">
+                    <div class="form-group">
+                        <label>Número de imágenes en el mosaico</label>
+                        <select id="publicacion-mosaico">
+                            <option value="1">1 imagen</option>
+                            <option value="2">2 imágenes</option>
+                            <option value="3">3 imágenes</option>
+                            <option value="4">4 imágenes</option>
+                        </select>
+                    </div>
+
+                    <div id="publicacion-imagenes">
+                        <div class="form-group">
+                            <label>Imagen 1</label>
+                            <div class="file-input-wrapper">
+                                <input type="file" id="publicacion-imagen-1" accept="image/*">
+                                <div class="file-input-display">
+                                    <i class="fas fa-upload"></i>
+                                    <span>Seleccionar imagen 1</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Artista</label>
+                            <input type="text" id="publicacion-artista" value="" placeholder="Nombre del artista">
+                        </div>
+                        <div class="form-group">
+                            <label>Rol</label>
+                            <select id="publicacion-rol">
+                                <option value="founder">Fundador</option>
+                                <option value="admin" selected>Admin</option>
+                                <option value="member">Miembro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Foto de perfil del artista</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="publicacion-perfil" accept="image/*">
+                            <div class="file-input-display">
+                                <i class="fas fa-user"></i>
+                                <span>Seleccionar foto de perfil</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Especialidad</label>
+                        <input type="text" id="publicacion-especialidad" value="" placeholder="Especialidad del artista">
+                    </div>
+                </div>
+
+                <!-- Entrevista Template Config -->
+                <div class="template-config" id="entrevista-config">
+                    <div class="form-group">
+                        <label>Foto de perfil</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="entrevista-foto" accept="image/*">
+                            <div class="file-input-display">
+                                <i class="fas fa-upload"></i>
+                                <span>Seleccionar foto</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Artista</label>
+                            <input type="text" id="entrevista-artista" value="" placeholder="Nombre del artista">
+                        </div>
+                        <div class="form-group">
+                            <label>Rol</label>
+                            <select id="entrevista-rol">
+                                <option value="founder" selected>Fundador</option>
+                                <option value="admin">Admin</option>
+                                <option value="member">Miembro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Especialidad</label>
+                        <input type="text" id="entrevista-especialidad" value="" placeholder="Especialidad del artista">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Descripción</label>
+                        <textarea id="entrevista-descripcion" rows="3" placeholder="Descripción breve del artista"></textarea>
+                    </div>
+
+                    <div id="entrevista-qa-container">
+                        <div class="qa-pair" data-index="0">
+                            <div class="form-group">
+                                <label>Pregunta 1</label>
+                                <input type="text" class="entrevista-pregunta" value="" placeholder="Pregunta de la entrevista">
+                            </div>
+                            <div class="form-group">
+                                <label>Respuesta 1</label>
+                                <textarea class="entrevista-respuesta" rows="3" placeholder="Respuesta del artista"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" id="add-qa-btn" class="add-btn">
+                        <i class="fas fa-plus"></i>
+                        Agregar Pregunta
+                    </button>
+                </div>
+
+                <!-- VS Template Config -->
+                <div class="template-config" id="vs-config">
+                    <div class="form-group">
+                        <label>Título del enfrentamiento</label>
+                        <input type="text" id="vs-titulo" value="" placeholder="Título del VS">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Relación de aspecto de las imágenes</label>
+                        <select id="vs-aspecto">
+                            <option value="1:1">Cuadrado (1:1)</option>
+                            <option value="4:3">Horizontal (4:3)</option>
+                            <option value="3:4" selected>Vertical (3:4)</option>
+                            <option value="16:9">Panorámico (16:9)</option>
+                            <option value="9:16">Vertical móvil (9:16)</option>
+                        </select>
+                    </div>
+
+                    <h3 class="vs-artist-heading">Artista A</h3>
+                    <div class="form-group">
+                        <label>Imagen de la obra</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="vs-a-imagen" accept="image/*">
+                            <div class="file-input-display">
+                                <i class="fas fa-upload"></i>
+                                <span>Seleccionar imagen</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Foto de perfil</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="vs-a-perfil" accept="image/*">
+                            <div class="file-input-display">
+                                <i class="fas fa-user"></i>
+                                <span>Seleccionar foto de perfil</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" id="vs-a-nombre" value="" placeholder="Nombre del artista">
+                        </div>
+                        <div class="form-group">
+                            <label>Puntaje</label>
+                            <input type="number" id="vs-a-puntaje" value="9.0" min="0" max="10" step="0.1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Especialidad</label>
+                        <input type="text" id="vs-a-especialidad" value="" placeholder="Especialidad del artista">
+                    </div>
+
+                    <h3 class="vs-artist-heading">Artista B</h3>
+                    <div class="form-group">
+                        <label>Imagen de la obra</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="vs-b-imagen" accept="image/*">
+                            <div class="file-input-display">
+                                <i class="fas fa-upload"></i>
+                                <span>Seleccionar imagen</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Foto de perfil</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="vs-b-perfil" accept="image/*">
+                            <div class="file-input-display">
+                                <i class="fas fa-user"></i>
+                                <span>Seleccionar foto de perfil</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" id="vs-b-nombre" value="" placeholder="Nombre del artista">
+                        </div>
+                        <div class="form-group">
+                            <label>Puntaje</label>
+                            <input type="number" id="vs-b-puntaje" value="8.7" min="0" max="10" step="0.1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Especialidad</label>
+                        <input type="text" id="vs-b-especialidad" value="" placeholder="Especialidad del artista">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ganador (opcional)</label>
+                        <select id="vs-ganador">
+                            <option value="">Sin definir / Empate</option>
+                            <option value="a">Artista A</option>
+                            <option value="b">Artista B</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Bracket Template Config -->
+                <div class="template-config" id="bracket-config">
+                    <div class="form-group">
+                        <label>Título de la liga</label>
+                        <input type="text" id="bracket-titulo" value="" placeholder="Nombre del torneo">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Número de participantes</label>
+                        <select id="bracket-size">
+                            <option value="4">4 participantes</option>
+                            <option value="8" selected>8 participantes</option>
+                            <option value="16">16 participantes</option>
+                        </select>
+                    </div>
+
+                    <div id="bracket-round0"></div>
+                    <div id="bracket-derived-rounds"></div>
+
+                    <div class="form-group">
+                        <strong id="bracket-champion-display"></strong>
+                    </div>
+                </div>
+
+                <!-- Collage Template Config -->
+                <div class="template-config" id="collage-config">
+                    <div class="form-group">
+                        <label>Título del collage (opcional)</label>
+                        <input type="text" id="collage-titulo" value="" placeholder="Ej: Obras de la semana">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Artista</label>
+                            <input type="text" id="collage-artista" value="" placeholder="Nombre del artista">
+                        </div>
+                        <div class="form-group">
+                            <label>Rol</label>
+                            <select id="collage-rol">
+                                <option value="founder">Fundador</option>
+                                <option value="admin" selected>Admin</option>
+                                <option value="member">Miembro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Foto de perfil (opcional)</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="collage-perfil" accept="image/*">
+                            <div class="file-input-display">
+                                <i class="fas fa-user"></i>
+                                <span>Seleccionar foto de perfil</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Diseño del collage</label>
+                        <select id="collage-layout">
+                            <option value="grid">Cuadrícula uniforme</option>
+                            <option value="masonry">Mosaico dinámico</option>
+                            <option value="featured">Imagen destacada + galería</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Espacio entre imágenes</label>
+                        <select id="collage-gap">
+                            <option value="0">Sin espacio</option>
+                            <option value="6" selected>Pequeño</option>
+                            <option value="12">Mediano</option>
+                            <option value="20">Grande</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Radio de esquinas</label>
+                        <select id="collage-radius">
+                            <option value="0">Sin redondeo</option>
+                            <option value="8" selected>Suave</option>
+                            <option value="16">Redondeado</option>
+                            <option value="9999">Circular</option>
+                        </select>
+                    </div>
+
+                    <hr style="border:none;border-top:1px solid var(--border-color);margin:1.5rem 0;">
+                    <p style="font-weight:600;color:var(--text-primary);margin-bottom:1rem;font-size:0.95rem;"><i class="fas fa-images" style="color:var(--primary-color);margin-right:0.5rem;"></i>Imágenes del collage</p>
+
+                    <div id="collage-imagenes-lista"></div>
+
+                    <button type="button" id="collage-add-img-btn" class="add-btn">
+                        <i class="fas fa-plus"></i>
+                        Agregar imagen
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview Panel -->
+            <div class="preview-panel">
+                <div class="preview-header">
+                    <h2><i class="fas fa-eye"></i> Vista Previa</h2>
+                    <button class="download-btn" id="downloadBtn">
+                        <i class="fas fa-download"></i>
+                        Descargar
+                    </button>
+                </div>
+
+                <div class="preview-container">
+                    <canvas id="previewCanvas" width="1200" height="900"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden canvas for final render -->
+        <canvas id="finalCanvas" width="1200" height="900" style="display: none;"></canvas>
+    </div>
+
+    <!-- Modal para ajustar zoom/posición de una imagen dentro de su contenedor -->
+    <div class="image-adjust-modal" id="imageAdjustModal">
+        <div class="image-adjust-content">
+            <h3><i class="fas fa-crop-alt"></i> Ajustar imagen</h3>
+            <div class="image-adjust-viewport" id="imageAdjustViewport">
+                <img id="imageAdjustImg" alt="">
+            </div>
+            <div class="image-adjust-controls">
+                <i class="fas fa-search-minus"></i>
+                <input type="range" id="imageAdjustZoom" min="100" max="300" value="100">
+                <i class="fas fa-search-plus"></i>
+            </div>
+            <p class="image-adjust-hint">Arrastra la imagen para reposicionarla</p>
+            <div class="image-adjust-actions">
+                <button type="button" class="btn-secondary" id="imageAdjustCancel">Cancelar</button>
+                <button type="button" class="btn-primary" id="imageAdjustSave">Aplicar</button>
+            </div>
+        </div>
+    </div>
+
+    </div>
+  </details>
+  <script>
+(function(){
+"use strict";
+class PlantillasRedes {
+  constructor() {
+    this.currentTemplate = "torneo"
+    this.isDarkMode = true
+    this.canvas = document.getElementById("previewCanvas")
+    this.ctx = this.canvas.getContext("2d")
+    this.finalCanvas = document.getElementById("finalCanvas")
+    this.finalCtx = this.finalCanvas.getContext("2d")
+
+    this.images = {
+      torneo: null,
+      torneoPerfil: null,
+      publicacion: [],
+      publicacionPerfil: null,
+      entrevista: null,
+      vsA: null,
+      vsAPerfil: null,
+      vsB: null,
+      vsBPerfil: null,
+      collage: [],
+      collagePerfil: null,
+    }
+
+    this.qaCount = 1
+    this.animationFrame = 0
+    this.bracketSize = 8
+    this.bracket = null
+
+    // Collage state
+    this.collageItems = [] // [{id, file, name}]
+    this.collageNextId = 1
+
+    // Transformaciones (zoom/posición) por imagen: { scale, offsetX, offsetY }
+    this.imageTransforms = {}
+    this.adjustKey = null
+    this.adjustImg = null
+    this.adjustState = { scale: 1, offsetX: 0, offsetY: 0 }
+    this.isDraggingAdjust = false
+    this.dragStart = { x: 0, y: 0, offsetX: 0, offsetY: 0 }
+
+    // Logo real de la comunidad (mismo logo que el sitio, cargado desde config.csv
+    // vía window.NEXO_LOGO_URL; si config.csv aún no llegó, usa la URL fija como
+    // respaldo). Cuando config.csv termine de cargar y actualice el logo, el sitio
+    // llama a window.prTemplatesApp.setLogoUrl(nuevaUrl) para refrescarlo aquí también.
+    this.logoImg = null
+    this.setLogoUrl(window.NEXO_LOGO_URL || "https://res.cloudinary.com/ojp6mrxi/image/upload/f_auto,q_auto/NXA_LOGO")
+
+    this.init()
+  }
+
+  setLogoUrl(url) {
+    if (!url) return
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.onload = () => {
+      this.logoImg = img
+      if (this.canvas) this.updatePreview()
+    }
+    img.src = url
+  }
+
+  // Dibuja el logo real (imagen) en la esquina indicada, manteniendo su proporción.
+  // x,y = esquina inferior izquierda del logo; targetH = alto deseado en px de canvas.
+  drawRealLogo(x, y, targetH) {
+    if (!this.logoImg) return
+    const h = targetH
+    const w = h * (this.logoImg.width / this.logoImg.height)
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0,0,0,0.25)"
+    this.ctx.shadowBlur = 8
+    this.ctx.shadowOffsetY = 3
+    this.ctx.drawImage(this.logoImg, x, y - h, w, h)
+    this.ctx.restore()
+  }
+
+  init() {
+    this.setupEventListeners()
+    this.setupImageAdjusterEvents()
+    this.updateCanvasSize()
+    document.getElementById("pr-templates-scope").setAttribute("data-theme", "dark")
+    document.getElementById("themeToggle").innerHTML = '<i class="fas fa-sun"></i><span>Modo Claro</span>'
+    this.updatePreview()
+  }
+
+  setupEventListeners() {
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        this.switchTemplate(e.target.dataset.template)
+      })
+    })
+
+    document.getElementById("themeToggle").addEventListener("click", () => {
+      this.toggleTheme()
+    })
+
+    document.getElementById("canvas-aspect").addEventListener("change", () => {
+      this.updateCanvasSize()
+      this.updatePreview()
+    })
+
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      this.downloadImage()
+    })
+
+    document.getElementById("torneo-imagen").addEventListener("change", (e) => {
+      this.handleImageUpload(e, "torneo")
+    })
+
+    document.getElementById("torneo-perfil").addEventListener("change", (e) => {
+      this.handleImageUpload(e, "torneoPerfil")
+    })
+
+    document.getElementById("publicacion-perfil").addEventListener("change", (e) => {
+      this.handleImageUpload(e, "publicacionPerfil")
+    })
+
+    document.getElementById("entrevista-foto").addEventListener("change", (e) => {
+      this.handleImageUpload(e, "entrevista")
+    })
+
+    document.getElementById("publicacion-mosaico").addEventListener("change", (e) => {
+      this.updatePublicacionImageInputs(Number.parseInt(e.target.value))
+    })
+
+    document.getElementById("add-qa-btn").addEventListener("click", () => {
+      this.addQAPair()
+    })
+
+    document.getElementById("vs-a-imagen").addEventListener("change", (e) => {
+      this.handleImageUpload(e, "vsA")
+    })
+
+    document.getElementById("vs-a-perfil").addEventListener("change", (e) => {
+      this.handleImageUpload(e, "vsAPerfil")
+    })
+
+    document.getElementById("vs-b-imagen").addEventListener("change", (e) => {
+      this.handleImageUpload(e, "vsB")
+    })
+
+    document.getElementById("vs-b-perfil").addEventListener("change", (e) => {
+      this.handleImageUpload(e, "vsBPerfil")
+    })
+
+    document.getElementById("bracket-size").addEventListener("change", (e) => {
+      this.buildBracketConfig(Number.parseInt(e.target.value))
+    })
+
+    document.querySelectorAll("input, select, textarea").forEach((input) => {
+      input.addEventListener("input", () => {
+        this.updatePreview()
+      })
+    })
+
+    this.updatePublicacionImageInputs(1)
+    this.buildBracketConfig(this.bracketSize)
+
+    // Collage
+    document.getElementById("collage-add-img-btn").addEventListener("click", () => {
+      this.addCollageImage()
+    })
+
+    document.getElementById("collage-perfil").addEventListener("change", (e) => {
+      this.handleImageUpload(e, "collagePerfil")
+    })
+
+    // Añade la primera imagen vacía al iniciar
+    this.addCollageImage()
+  }
+
+  updateCanvasSize() {
+    const aspectRatio = document.getElementById("canvas-aspect").value
+    let canvasWidth, canvasHeight
+
+    switch (aspectRatio) {
+      case "4:3":
+        canvasWidth = 1200
+        canvasHeight = 900
+        break
+      case "16:9":
+        canvasWidth = 1600
+        canvasHeight = 900
+        break
+      case "1:1":
+        canvasWidth = 1080
+        canvasHeight = 1080
+        break
+      case "9:16":
+        canvasWidth = 1080
+        canvasHeight = 1920
+        break
+      case "3:4":
+        canvasWidth = 1080
+        canvasHeight = 1440
+        break
+      default:
+        canvasWidth = 1200
+        canvasHeight = 900
+    }
+
+    this.canvas.width = canvasWidth
+    this.canvas.height = canvasHeight
+    this.finalCanvas.width = canvasWidth
+    this.finalCanvas.height = canvasHeight
+  }
+
+  switchTemplate(template) {
+    this.currentTemplate = template
+
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.classList.remove("active")
+    })
+    document.querySelector(`[data-template="${template}"]`).classList.add("active")
+
+    document.querySelectorAll(".template-config").forEach((config) => {
+      config.classList.remove("active")
+    })
+    document.getElementById(`${template}-config`).classList.add("active")
+
+    this.updateCanvasSize()
+    this.updatePreview()
+  }
+
+  toggleTheme() {
+    this.isDarkMode = !this.isDarkMode
+    const body = document.getElementById("pr-templates-scope")
+    const themeToggle = document.getElementById("themeToggle")
+
+    if (this.isDarkMode) {
+      body.setAttribute("data-theme", "dark")
+      themeToggle.innerHTML = '<i class="fas fa-sun"></i><span>Modo Claro</span>'
+    } else {
+      body.removeAttribute("data-theme")
+      themeToggle.innerHTML = '<i class="fas fa-moon"></i><span>Modo Oscuro</span>'
+    }
+
+    this.updatePreview()
+  }
+
+  handleImageUpload(event, type) {
+    const file = event.target.files[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.crossOrigin = "anonymous"
+      img.onload = () => {
+        let key = type
+        if (type.startsWith("publicacion-imagen-")) {
+          const index = Number.parseInt(type.split("-")[2]) - 1
+          this.images.publicacion[index] = img
+          key = `publicacion-${index}`
+        } else {
+          this.images[type] = img
+        }
+        // Cada imagen nueva empieza centrada y sin zoom extra
+        this.imageTransforms[key] = { scale: 1, offsetX: 0, offsetY: 0 }
+        this.addAdjustButton(event.target, key)
+        this.updatePreview()
+      }
+      img.src = e.target.result
+    }
+    reader.readAsDataURL(file)
+
+    const display = event.target.nextElementSibling
+    display.innerHTML = `<i class="fas fa-check"></i><span>${file.name}</span>`
+  }
+
+  // Crea (si hace falta) y muestra el botón "Ajustar imagen" junto al input de archivo
+  addAdjustButton(inputEl, key) {
+    const wrapper = inputEl.closest(".file-input-wrapper")
+    if (!wrapper) return
+
+    let btn = wrapper.querySelector(".adjust-image-btn")
+    if (!btn) {
+      btn = document.createElement("button")
+      btn.type = "button"
+      btn.className = "adjust-image-btn"
+      btn.innerHTML = '<i class="fas fa-crop-alt"></i><span>Ajustar imagen</span>'
+      wrapper.appendChild(btn)
+      btn.addEventListener("click", (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        this.openImageAdjuster(btn.dataset.key)
+      })
+    }
+    btn.dataset.key = key
+    btn.style.display = "flex"
+  }
+
+  // Devuelve la imagen cargada correspondiente a una clave ("torneo", "vsAPerfil", "publicacion-0", "collage-3", ...)
+  getImageForKey(key) {
+    if (key.startsWith("publicacion-")) {
+      const index = Number.parseInt(key.split("-")[1])
+      return this.images.publicacion[index]
+    }
+    if (key.startsWith("collage-")) {
+      const id = Number.parseInt(key.split("-")[1])
+      const item = this.collageItems.find(it => it.id === id)
+      return item ? item.img : null
+    }
+    return this.images[key]
+  }
+
+  // Devuelve (creando si hace falta) la transformación de zoom/posición de una imagen
+  getTransform(key) {
+    if (!key) return { scale: 1, offsetX: 0, offsetY: 0 }
+    if (!this.imageTransforms[key]) {
+      this.imageTransforms[key] = { scale: 1, offsetX: 0, offsetY: 0 }
+    }
+    return this.imageTransforms[key]
+  }
+
+  // Relación de aspecto aproximada del contenedor de destino, para mostrar un recorte fiel en el editor
+  getAdjustAspectRatio(key) {
+    if (key === "torneo") {
+      const select = document.getElementById("torneo-aspecto")
+      if (select) return this.getAspectRatio(select.value)
+      return 1
+    }
+    if (key.startsWith("publicacion-")) return 1
+    if (key === "vsA" || key === "vsB") return 0.85
+    // Fotos de perfil: siempre circulares (1:1)
+    return 1
+  }
+
+  // Abre el editor modal para ajustar el zoom/posición de una imagen dentro de su contenedor
+  openImageAdjuster(key, imgOverride) {
+    const img = imgOverride || this.getImageForKey(key)
+    if (!img) return
+
+    this.adjustKey = key
+    this.adjustImg = img
+    const t = this.getTransform(key)
+    this.adjustState = { scale: t.scale, offsetX: t.offsetX, offsetY: t.offsetY }
+
+    const aspectRatio = this.getAdjustAspectRatio(key)
+    const viewport = document.getElementById("imageAdjustViewport")
+    const maxSize = 380
+    let vw, vh
+    if (aspectRatio >= 1) {
+      vw = maxSize
+      vh = maxSize / aspectRatio
+    } else {
+      vh = maxSize
+      vw = maxSize * aspectRatio
+    }
+    viewport.style.width = `${vw}px`
+    viewport.style.height = `${vh}px`
+
+    const imgEl = document.getElementById("imageAdjustImg")
+    imgEl.src = img.src
+
+    document.getElementById("imageAdjustZoom").value = Math.round(this.adjustState.scale * 100)
+
+    const modal = document.getElementById("imageAdjustModal")
+    modal.classList.add("show")
+
+    // Esperar a que el viewport tenga tamaño aplicado antes de calcular el preview
+    requestAnimationFrame(() => this.updateAdjustPreview())
+  }
+
+  closeImageAdjuster() {
+    document.getElementById("imageAdjustModal").classList.remove("show")
+    this.adjustKey = null
+    this.adjustImg = null
+  }
+
+  // Redibuja la imagen dentro del recuadro del editor aplicando zoom + posición, sin dejar huecos
+  updateAdjustPreview() {
+    if (!this.adjustImg) return
+    const viewport = document.getElementById("imageAdjustViewport")
+    const imgEl = document.getElementById("imageAdjustImg")
+    const vw = viewport.clientWidth
+    const vh = viewport.clientHeight
+    if (!vw || !vh) return
+
+    const imgRatio = this.adjustImg.width / this.adjustImg.height
+    const areaRatio = vw / vh
+
+    let baseW, baseH
+    if (imgRatio > areaRatio) {
+      baseH = vh
+      baseW = vh * imgRatio
+    } else {
+      baseW = vw
+      baseH = vw / imgRatio
+    }
+
+    const scale = Math.max(1, this.adjustState.scale)
+    const drawW = baseW * scale
+    const drawH = baseH * scale
+
+    const maxOffX = Math.max(0, (drawW - vw) / 2)
+    const maxOffY = Math.max(0, (drawH - vh) / 2)
+
+    // Aseguramos que el offset normalizado (-1..1) quede dentro de rango válido
+    this.adjustState.offsetX = Math.min(1, Math.max(-1, this.adjustState.offsetX))
+    this.adjustState.offsetY = Math.min(1, Math.max(-1, this.adjustState.offsetY))
+
+    const offX = this.adjustState.offsetX * maxOffX
+    const offY = this.adjustState.offsetY * maxOffY
+
+    imgEl.style.width = `${drawW}px`
+    imgEl.style.height = `${drawH}px`
+    imgEl.style.left = `${(vw - drawW) / 2 - offX}px`
+    imgEl.style.top = `${(vh - drawH) / 2 - offY}px`
+  }
+
+  setupImageAdjusterEvents() {
+    const viewport = document.getElementById("imageAdjustViewport")
+    const zoomSlider = document.getElementById("imageAdjustZoom")
+    const saveBtn = document.getElementById("imageAdjustSave")
+    const cancelBtn = document.getElementById("imageAdjustCancel")
+    const modal = document.getElementById("imageAdjustModal")
+
+    zoomSlider.addEventListener("input", () => {
+      const oldScale = this.adjustState.scale
+      const newScale = Number.parseInt(zoomSlider.value) / 100
+      this.adjustState.scale = newScale
+      // Si se reduce el zoom, evitamos que el offset quede fuera de rango de golpe
+      if (newScale < oldScale) {
+        this.adjustState.offsetX = Math.min(1, Math.max(-1, this.adjustState.offsetX))
+        this.adjustState.offsetY = Math.min(1, Math.max(-1, this.adjustState.offsetY))
+      }
+      this.updateAdjustPreview()
+    })
+
+    const startDrag = (clientX, clientY) => {
+      this.isDraggingAdjust = true
+      viewport.classList.add("dragging")
+      this.dragStart = {
+        x: clientX,
+        y: clientY,
+        offsetX: this.adjustState.offsetX,
+        offsetY: this.adjustState.offsetY,
+      }
+    }
+
+    const moveDrag = (clientX, clientY) => {
+      if (!this.isDraggingAdjust || !this.adjustImg) return
+      const vw = viewport.clientWidth
+      const vh = viewport.clientHeight
+      const imgRatio = this.adjustImg.width / this.adjustImg.height
+      const areaRatio = vw / vh
+      let baseW, baseH
+      if (imgRatio > areaRatio) {
+        baseH = vh
+        baseW = vh * imgRatio
+      } else {
+        baseW = vw
+        baseH = vw / imgRatio
+      }
+      const scale = Math.max(1, this.adjustState.scale)
+      const drawW = baseW * scale
+      const drawH = baseH * scale
+      const maxOffX = Math.max(0, (drawW - vw) / 2)
+      const maxOffY = Math.max(0, (drawH - vh) / 2)
+
+      const deltaX = clientX - this.dragStart.x
+      const deltaY = clientY - this.dragStart.y
+
+      this.adjustState.offsetX = maxOffX
+        ? Math.min(1, Math.max(-1, this.dragStart.offsetX - deltaX / maxOffX))
+        : 0
+      this.adjustState.offsetY = maxOffY
+        ? Math.min(1, Math.max(-1, this.dragStart.offsetY - deltaY / maxOffY))
+        : 0
+
+      this.updateAdjustPreview()
+    }
+
+    const endDrag = () => {
+      this.isDraggingAdjust = false
+      viewport.classList.remove("dragging")
+    }
+
+    viewport.addEventListener("pointerdown", (e) => {
+      viewport.setPointerCapture(e.pointerId)
+      startDrag(e.clientX, e.clientY)
+    })
+    viewport.addEventListener("pointermove", (e) => moveDrag(e.clientX, e.clientY))
+    viewport.addEventListener("pointerup", endDrag)
+    viewport.addEventListener("pointercancel", endDrag)
+
+    // Zoom con la rueda del mouse directamente sobre la imagen
+    viewport.addEventListener(
+      "wheel",
+      (e) => {
+        e.preventDefault()
+        const newValue = Math.min(300, Math.max(100, Number.parseInt(zoomSlider.value) - e.deltaY * 0.1))
+        zoomSlider.value = Math.round(newValue)
+        this.adjustState.scale = newValue / 100
+        this.updateAdjustPreview()
+      },
+      { passive: false },
+    )
+
+    saveBtn.addEventListener("click", () => {
+      if (this.adjustKey) {
+        this.imageTransforms[this.adjustKey] = {
+          scale: this.adjustState.scale,
+          offsetX: this.adjustState.offsetX,
+          offsetY: this.adjustState.offsetY,
+        }
+        this.updatePreview()
+      }
+      this.closeImageAdjuster()
+    })
+
+    cancelBtn.addEventListener("click", () => this.closeImageAdjuster())
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) this.closeImageAdjuster()
+    })
+  }
+
+  updatePublicacionImageInputs(count) {
+    const container = document.getElementById("publicacion-imagenes")
+    container.innerHTML = ""
+    this.images.publicacion = []
+
+    for (let i = 1; i <= count; i++) {
+      const div = document.createElement("div")
+      div.className = "form-group image-input-group"
+      div.innerHTML = `
+        <label>Imagen ${i}</label>
+        <div class="file-input-wrapper">
+          <input type="file" id="publicacion-imagen-${i}" accept="image/*">
+          <div class="file-input-display">
+            <i class="fas fa-upload"></i>
+            <span>Seleccionar imagen ${i}</span>
+          </div>
+        </div>
+      `
+      container.appendChild(div)
+
+      document.getElementById(`publicacion-imagen-${i}`).addEventListener("change", (e) => {
+        this.handleImageUpload(e, `publicacion-imagen-${i}`)
+      })
+    }
+
+    this.updatePreview()
+  }
+
+  addQAPair() {
+    this.qaCount++
+    const container = document.getElementById("entrevista-qa-container")
+
+    const div = document.createElement("div")
+    div.className = "qa-pair"
+    div.setAttribute("data-index", this.qaCount - 1)
+    div.innerHTML = `
+      <button type="button" class="remove-qa-btn" onclick="this.parentElement.remove(); app.updatePreview();">
+        <i class="fas fa-times"></i>
+      </button>
+      <div class="form-group">
+        <label>Pregunta ${this.qaCount}</label>
+        <input type="text" class="entrevista-pregunta" placeholder="Pregunta de la entrevista">
+      </div>
+      <div class="form-group">
+        <label>Respuesta ${this.qaCount}</label>
+        <textarea class="entrevista-respuesta" rows="3" placeholder="Respuesta del artista"></textarea>
+      </div>
+    `
+    container.appendChild(div)
+
+    div.querySelectorAll("input, textarea").forEach((input) => {
+      input.addEventListener("input", () => {
+        this.updatePreview()
+      })
+    })
+
+    this.updatePreview()
+  }
+
+  updatePreview() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+    this.animationFrame++
+
+    switch (this.currentTemplate) {
+      case "torneo":
+        this.renderTorneoTemplate()
+        break
+      case "publicacion":
+        this.renderPublicacionTemplate()
+        break
+      case "entrevista":
+        this.renderEntrevistaTemplate()
+        break
+      case "vs":
+        this.renderVsTemplate()
+        break
+      case "bracket":
+        this.renderBracketTemplate()
+        break
+      case "collage":
+        this.renderCollageTemplate()
+        break
+    }
+  }
+
+  renderTorneoTemplate() {
+    const data = this.getTorneoData()
+
+    // Clean modern background
+    this.drawModernBackground()
+
+    // Determine layout based on canvas aspect ratio
+    const aspectRatio = this.canvas.width / this.canvas.height
+
+    if (aspectRatio > 1.2) {
+      // Horizontal layout (4:3, 16:9)
+      this.renderHorizontalLayout(data)
+    } else {
+      // Vertical layout (9:16, 3:4, 1:1)
+      this.drawVerticalLayout(data)
+    }
+  }
+
+  renderHorizontalLayout(data) {
+    const margin = 40
+
+    // Definir dimensiones exactas basadas en la imagen de referencia
+    const totalWidth = this.canvas.width - margin * 2
+    const totalHeight = this.canvas.height - margin * 2
+
+    // Imagen ocupa aproximadamente 60% del ancho
+    const imageAreaWidth = totalWidth * 0.6
+    const imageAreaHeight = totalHeight
+    const imageAreaX = margin
+    const imageAreaY = margin
+
+    // Panel derecho ocupa el 40% restante
+    const panelWidth = totalWidth * 0.38
+    const panelHeight = totalHeight
+    const panelX = imageAreaX + imageAreaWidth + margin * 0.5
+    const panelY = margin
+
+    // Dibujar el marco de la imagen
+    this.drawModernImageFrame(imageAreaX, imageAreaY, imageAreaWidth, imageAreaHeight, data.aspecto)
+
+    // Dibujar el panel derecho
+    this.drawHorizontalRightPanel(panelX, panelY, panelWidth, panelHeight, data)
+
+    // Logo en la esquina inferior izquierda
+    this.drawModernLogo(margin, this.canvas.height - margin - 10)
+  }
+
+  drawHorizontalRightPanel(x, y, width, height, data) {
+    const scale = Math.min(width / 350, height / 800, 1)
+
+    // Badge de posición en la parte superior (más grande)
+    const badgeHeight = 70 * scale
+    this.drawModernPositionBadge(x, y, width, badgeHeight, data.posicion, scale)
+
+    // Métricas en el medio
+    const metricsStartY = y + badgeHeight + 20 * scale
+    const metricsHeight = height * 0.4 // Reduced from 0.45 to give more space
+    this.drawHorizontalScoreMetrics(x, metricsStartY, width, metricsHeight, data, scale)
+
+    // Círculo de puntuación total - positioned in the gap
+    const gapStartY = metricsStartY + metricsHeight + 15 * scale
+    const profileStartY = y + height - 140 * scale // Fixed position from bottom
+    const gapCenterY = gapStartY + (profileStartY - gapStartY) / 2
+    this.drawModernTotalScore(x + width / 2, gapCenterY, data.total, scale)
+
+    // Perfil del artista en la parte inferior - moved down
+    const profileHeight = 130 * scale
+    this.drawHorizontalArtistProfile(x, profileStartY, width, profileHeight, data, scale)
+  }
+
+  drawVerticalLayout(data) {
+    const margin = Math.min(this.canvas.width * 0.05, 40)
+    const contentWidth = this.canvas.width - margin * 2
+
+    // Main image area (top section)
+    const imageAreaHeight = this.canvas.height * 0.45
+    this.drawModernImageFrame(margin, margin, contentWidth, imageAreaHeight, data.aspecto)
+
+    // Info panel (bottom section)
+    const panelY = margin + imageAreaHeight + margin
+    const panelHeight = this.canvas.height - panelY - margin * 2
+
+    this.drawVerticalInfoPanel(margin, panelY, contentWidth, panelHeight, data)
+
+    // Logo at bottom
+    this.drawModernLogo(margin, this.canvas.height - margin)
+  }
+
+  renderPublicacionTemplate() {
+    const data = this.getPublicacionData()
+    const mosaico = Number.parseInt(document.getElementById("publicacion-mosaico").value)
+
+    // Fondo artístico elegante
+    this.drawArtisticElegantBackground()
+
+    // Efectos de luz sutiles
+    this.drawSubtleLighting()
+
+    // Mosaico elegante
+    const margin = 60
+    const availableWidth = this.canvas.width - margin * 2
+    const availableHeight = this.canvas.height - 220
+
+    this.drawElegantMosaico(margin, margin, availableWidth, availableHeight, mosaico)
+
+    // Badge de artista elegante
+    const badgeWidth = Math.min(320, this.canvas.width * 0.3)
+    const badgeX = this.canvas.width - badgeWidth - 60
+    const badgeY = this.canvas.height - 200
+
+    this.drawElegantFloatingArtistBadge(badgeX, badgeY, badgeWidth, data, this.images.publicacionPerfil, "publicacionPerfil")
+
+    // Logo elegante
+    this.drawElegantGalleryLogo(60, this.canvas.height - 60)
+  }
+
+  renderEntrevistaTemplate() {
+    const data = this.getEntrevistaData()
+
+    // Fondo de entrevista elegante
+    this.drawElegantInterviewBackground()
+
+    // Iluminación sutil
+    this.drawSubtleStudioLighting()
+
+    // Título elegante
+    this.drawElegantTitle("Conociendo al Artista", this.canvas.width / 2, 120)
+
+    // Sección de perfil elegante
+    const centerX = this.canvas.width / 2
+    const profileY = 240
+
+    this.drawElegantProfileSection(centerX, profileY, data, this.images.entrevista, "entrevista")
+
+    // Sección Q&A elegante
+    let currentY = profileY + 380
+    const qaData = this.getQAData()
+
+    qaData.forEach((qa, index) => {
+      if (qa.pregunta.trim() && qa.respuesta.trim()) {
+        currentY = this.drawElegantQASection(qa.pregunta, qa.respuesta, currentY, data.nombre, index)
+        currentY += 80
+      }
+    })
+
+    // Logo elegante
+    this.drawElegantInterviewLogo(60, this.canvas.height - 60)
+  }
+
+  drawModernBackground() {
+    // Clean gradient background matching the reference
+    const gradient = this.ctx.createLinearGradient(0, 0, this.canvas.width, this.canvas.height)
+    gradient.addColorStop(0, "#2D1B69")
+    gradient.addColorStop(0.5, "#1E1B4B")
+    gradient.addColorStop(1, "#0F0F23")
+
+    this.ctx.fillStyle = gradient
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
+  }
+
+  drawModernImageFrame(x, y, width, height, aspectRatio) {
+    // Modern card frame
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.3)"
+    this.ctx.shadowBlur = 20
+    this.ctx.shadowOffsetY = 10
+
+    // Card background
+    this.ctx.fillStyle = "#374151"
+    this.roundRect(this.ctx, x, y, width, height, 20)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    // Inner content area
+    const padding = Math.min(width * 0.03, 20)
+    const contentX = x + padding
+    const contentY = y + padding
+    const contentWidth = width - padding * 2
+    const contentHeight = height - padding * 2
+
+    // Calculate image dimensions based on aspect ratio
+    const ratio = this.getAspectRatio(aspectRatio)
+    let imageWidth, imageHeight, imageX, imageY
+
+    if (ratio >= 1) {
+      if (ratio > contentWidth / contentHeight) {
+        imageWidth = contentWidth
+        imageHeight = contentWidth / ratio
+      } else {
+        imageHeight = contentHeight
+        imageWidth = contentHeight * ratio
+      }
+    } else {
+      if (ratio < contentWidth / contentHeight) {
+        imageHeight = contentHeight
+        imageWidth = contentHeight * ratio
+      } else {
+        imageWidth = contentWidth
+        imageHeight = contentWidth / ratio
+      }
+    }
+
+    imageX = contentX + (contentWidth - imageWidth) / 2
+    imageY = contentY + (contentHeight - imageHeight) / 2
+
+    // Draw image or placeholder
+    this.ctx.save()
+    this.roundRect(this.ctx, imageX, imageY, imageWidth, imageHeight, 15)
+    this.ctx.clip()
+
+    if (this.images.torneo) {
+      this.drawImageFit(this.images.torneo, imageX, imageY, imageWidth, imageHeight, "torneo")
+    } else {
+      // Placeholder
+      this.ctx.fillStyle = "#4B5563"
+      this.ctx.fill()
+
+      this.ctx.fillStyle = "#9CA3AF"
+      this.ctx.font = `${Math.min(width * 0.02, 24)}px Inter`
+      this.ctx.textAlign = "center"
+      this.ctx.fillText("📸 Sube una imagen", imageX + imageWidth / 2, imageY + imageHeight / 2)
+    }
+    this.ctx.restore()
+  }
+
+  drawModernRightPanel(x, y, width, height, data) {
+    const scale = Math.min(width / 380, height / 840, 1)
+
+    // Position badge at top
+    this.drawModernPositionBadge(x + width * 0.05, y + height * 0.03, width * 0.9, data.posicion, scale)
+
+    // Score metrics section
+    const metricsY = y + height * 0.15
+    const metricsHeight = height * 0.45
+    this.drawModernScoreMetrics(x + width * 0.05, metricsY, width * 0.9, metricsHeight, data, scale)
+
+    // Total score circle
+    const totalScoreY = y + height * 0.65
+    this.drawModernTotalScore(x + width / 2, totalScoreY, data, scale)
+
+    // Artist profile at bottom
+    const profileY = y + height * 0.8
+    this.drawModernArtistProfile(x + width * 0.05, profileY, width * 0.9, data, scale)
+  }
+
+  drawVerticalInfoPanel(x, y, width, height, data) {
+    const scale = Math.min(width / 600, height / 600, 1)
+
+    // Position badge at top
+    this.drawModernPositionBadge(x, y, width, height * 0.15, data.posicion, scale)
+
+    // Score metrics in two columns
+    const metricsY = y + height * 0.2
+    const metricsHeight = height * 0.4
+    this.drawVerticalScoreMetrics(x, metricsY, width, metricsHeight, data, scale)
+
+    // Total score and artist profile side by side
+    const bottomY = y + height * 0.65
+    const bottomHeight = height * 0.3
+
+    // Total score (left side)
+    this.drawModernTotalScore(x + width * 0.25, bottomY + bottomHeight / 2, data.total, scale)
+
+    // Artist profile (right side)
+    this.drawModernArtistProfile(x + width * 0.5, bottomY, width * 0.45, data, scale)
+  }
+
+  drawModernPositionBadge(x, y, width, height, position, scale = 1) {
+    const badgeHeight = Math.max(height, 60 * scale)
+
+    // Get position styling
+    const style = this.getPositionStyle(position)
+
+    // Badge background
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.2)"
+    this.ctx.shadowBlur = 10 * scale
+    this.ctx.shadowOffsetY = 5 * scale
+
+    const gradient = this.ctx.createLinearGradient(x, y, x + width, y + badgeHeight)
+    gradient.addColorStop(0, style.gradientStart)
+    gradient.addColorStop(1, style.gradientEnd)
+
+    this.ctx.fillStyle = gradient
+    this.roundRect(this.ctx, x, y, width, badgeHeight, 30 * scale)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    // Badge content
+    this.ctx.save()
+    this.ctx.fillStyle = style.textColor
+    this.ctx.textAlign = "center"
+
+    if (style.icon) {
+      // Draw icon and text
+      this.ctx.font = `${24 * scale}px Arial`
+      this.ctx.fillText(style.icon, x + 40 * scale, y + badgeHeight / 2 + 8 * scale)
+
+      this.ctx.font = `bold ${16 * scale}px Inter`
+      this.ctx.fillText(style.text, x + width / 2 + 10 * scale, y + badgeHeight / 2 + 5 * scale)
+    } else {
+      this.ctx.font = `bold ${18 * scale}px Inter`
+      this.ctx.fillText(style.text, x + width / 2, y + badgeHeight / 2 + 5 * scale)
+    }
+    this.ctx.restore()
+  }
+
+  drawModernScoreMetrics(x, y, width, height, data, scale = 1) {
+    const metrics = [
+      { label: "Impacto Escénico", value: data.impacto, color: "#10B981" },
+      { label: "Ambientación", value: data.ambientacion, color: "#8B5CF6" },
+      { label: "Originalidad", value: data.originalidad, color: "#F59E0B" },
+      { label: "Coloreo/Delineado", value: data.coloreo, color: "#EF4444" },
+      { label: "Dificultad", value: data.dificultad, color: "#06B6D4" },
+      { label: "Dinamismo", value: data.dinamismo, color: "#84CC16" },
+    ]
+
+    const itemHeight = height / metrics.length
+
+    metrics.forEach((metric, index) => {
+      const itemY = y + index * itemHeight
+      this.drawModernMetricItem(x, itemY, width, itemHeight, metric, scale)
+    })
+  }
+
+  drawVerticalScoreMetrics(x, y, width, height, data, scale = 1) {
+    const metrics = [
+      { label: "Impacto Escénico", value: data.impacto, color: "#10B981" },
+      { label: "Ambientación", value: data.ambientacion, color: "#8B5CF6" },
+      { label: "Originalidad", value: data.originalidad, color: "#F59E0B" },
+      { label: "Coloreo/Delineado", value: data.coloreo, color: "#EF4444" },
+      { label: "Dificultad", value: data.dificultad, color: "#06B6D4" },
+      { label: "Dinamismo", value: data.dinamismo, color: "#84CC16" },
+    ]
+
+    const itemHeight = height / 3
+    const itemWidth = width / 2
+
+    metrics.forEach((metric, index) => {
+      const col = index % 2
+      const row = Math.floor(index / 2)
+      const itemX = x + col * itemWidth
+      const itemY = y + row * itemHeight
+
+      this.drawModernMetricItem(itemX, itemY, itemWidth, itemHeight, metric, scale)
+    })
+  }
+
+  drawModernMetricItem(x, y, width, height, metric, scale = 1) {
+    const fontSize = Math.min(16 * scale, width * 0.04)
+
+    // Metric label
+    this.ctx.save()
+    this.ctx.fillStyle = "#FFFFFF"
+    this.ctx.font = `bold ${fontSize}px Inter`
+    this.ctx.textAlign = "left"
+    this.ctx.fillText(metric.label, x, y + height / 2 + fontSize / 3)
+    this.ctx.restore()
+
+    // Progress bar background
+    const barWidth = Math.min(120 * scale, width * 0.3)
+    const barHeight = Math.max(8 * scale, 6)
+    const barX = x + width - barWidth - 50 * scale
+    const barY = y + height / 2 - barHeight / 2
+
+    this.ctx.save()
+    this.ctx.fillStyle = "#374151"
+    this.roundRect(this.ctx, barX, barY, barWidth, barHeight, 4 * scale)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    // Progress bar fill
+    const progress = (metric.value / 10) * barWidth
+    this.ctx.save()
+    this.ctx.fillStyle = metric.color
+    this.roundRect(this.ctx, barX, barY, progress, barHeight, 4 * scale)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    // Score value
+    this.ctx.save()
+    this.ctx.fillStyle = "#FFFFFF"
+    this.ctx.font = `bold ${fontSize}px Inter`
+    this.ctx.textAlign = "right"
+    this.ctx.fillText(metric.value, x + width - 10 * scale, y + height / 2 + fontSize / 3)
+    this.ctx.restore()
+  }
+
+  drawModernTotalScore(centerX, centerY, score, scale = 1) {
+    const radius = 60 * scale
+
+    // Circle background
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.2)"
+    this.ctx.shadowBlur = 15 * scale
+    this.ctx.shadowOffsetY = 8 * scale
+
+    this.ctx.fillStyle = "#1F2937"
+    this.ctx.beginPath()
+    this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    // Progress ring background
+    this.ctx.save()
+    this.ctx.lineWidth = 8 * scale
+    this.ctx.strokeStyle = "#374151"
+    this.ctx.beginPath()
+    this.ctx.arc(centerX, centerY, radius - 15 * scale, 0, Math.PI * 2)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    // Progress ring
+    const progress = score / 10
+    const startAngle = -Math.PI / 2
+    const endAngle = startAngle + progress * 2 * Math.PI
+
+    this.ctx.save()
+    this.ctx.lineWidth = 8 * scale
+    this.ctx.lineCap = "round"
+    this.ctx.strokeStyle = "#8B5CF6"
+    this.ctx.beginPath()
+    this.ctx.arc(centerX, centerY, radius - 15 * scale, startAngle, endAngle)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    // Score text
+    this.ctx.save()
+    this.ctx.fillStyle = "#FFFFFF"
+    this.ctx.font = `bold ${32 * scale}px Inter`
+    this.ctx.textAlign = "center"
+    this.ctx.fillText(score, centerX, centerY + 5 * scale)
+
+    this.ctx.font = `${14 * scale}px Inter`
+    this.ctx.fillStyle = "#9CA3AF"
+    this.ctx.fillText("/ 10", centerX, centerY + 25 * scale)
+    this.ctx.restore()
+  }
+
+  drawModernArtistProfile(x, y, width, data, scale = 1) {
+    const profileHeight = Math.max(100 * scale, width * 0.2)
+
+    // Profile card background
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.2)"
+    this.ctx.shadowBlur = 10 * scale
+    this.ctx.shadowOffsetY = 5 * scale
+
+    this.ctx.fillStyle = "#1F2937"
+    this.roundRect(this.ctx, x, y, width, profileHeight, 15 * scale)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    // Profile picture
+    const profileSize = Math.min(70 * scale, profileHeight * 0.7)
+    const profileX = x + 15 * scale
+    const profileY = y + (profileHeight - profileSize) / 2
+
+    this.ctx.save()
+    this.ctx.beginPath()
+    this.ctx.arc(profileX + profileSize / 2, profileY + profileSize / 2, profileSize / 2, 0, Math.PI * 2)
+    this.ctx.clip()
+
+    if (this.images.torneoPerfil) {
+      this.drawImageFit(this.images.torneoPerfil, profileX, profileY, profileSize, profileSize, "torneoPerfil")
+    } else {
+      this.ctx.fillStyle = "#4B5563"
+      this.ctx.fill()
+    }
+    this.ctx.restore()
+
+    // Profile ring
+    this.ctx.save()
+    this.ctx.strokeStyle = "#8B5CF6"
+    this.ctx.lineWidth = 3 * scale
+    this.ctx.beginPath()
+    this.ctx.arc(profileX + profileSize / 2, profileY + profileSize / 2, profileSize / 2 + 2 * scale, 0, Math.PI * 2)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    // Artist info
+    const fontSize = Math.min(20 * scale, width * 0.05)
+
+    this.ctx.save()
+    this.ctx.fillStyle = "#FFFFFF"
+    this.ctx.font = `bold ${fontSize}px Inter`
+    this.ctx.textAlign = "left"
+    this.ctx.fillText(data.artista, profileX + profileSize + 20 * scale, y + profileHeight / 2 - 5 * scale)
+
+    this.ctx.font = `${fontSize * 0.7}px Inter`
+    this.ctx.fillStyle = "#9CA3AF"
+    this.ctx.fillText(data.especialidad, profileX + profileSize + 20 * scale, y + profileHeight / 2 + 15 * scale)
+    this.ctx.restore()
+  }
+
+  drawModernLogo(x, y) {
+    const scale = Math.min(this.canvas.width / 1200, 1)
+    this.drawRealLogo(x, y, 38 * scale)
+  }
+
+  drawHorizontalScoreMetrics(x, y, width, height, data, scale = 1) {
+    const metrics = [
+      { label: "Impacto Escénico", value: data.impacto, color: "#10B981" },
+      { label: "Ambientación", value: data.ambientacion, color: "#8B5CF6" },
+      { label: "Originalidad", value: data.originalidad, color: "#F59E0B" },
+      { label: "Coloreo/Delineado", value: data.coloreo, color: "#EF4444" },
+      { label: "Dificultad", value: data.dificultad, color: "#06B6D4" },
+      { label: "Dinamismo", value: data.dinamismo, color: "#84CC16" },
+    ]
+
+    const itemHeight = height / metrics.length
+    const fontSize = Math.min(22 * scale, width * 0.06)
+
+    metrics.forEach((metric, index) => {
+      const itemY = y + index * itemHeight
+      const centerY = itemY + itemHeight / 2
+
+      // Etiqueta de la métrica
+      this.ctx.save()
+      this.ctx.fillStyle = "#FFFFFF"
+      this.ctx.font = `bold ${fontSize}px Inter`
+      this.ctx.textAlign = "left"
+      this.ctx.fillText(metric.label, x, centerY + fontSize / 3)
+
+      // Barra de progreso
+      const barWidth = width * 0.35
+      const barHeight = 8 * scale
+      const barX = x + width * 0.45
+      const barY = centerY - barHeight / 2
+
+      // Fondo de la barra
+      this.ctx.fillStyle = "#374151"
+      this.roundRect(this.ctx, barX, barY, barWidth, barHeight, 4 * scale)
+      this.ctx.fill()
+
+      // Progreso de la barra
+      const progress = (metric.value / 10) * barWidth
+      this.ctx.fillStyle = metric.color
+      this.roundRect(this.ctx, barX, barY, progress, barHeight, 4 * scale)
+      this.ctx.fill()
+
+      // Valor numérico alineado a la derecha
+      this.ctx.fillStyle = "#FFFFFF"
+      this.ctx.font = `bold ${fontSize}px Inter`
+      this.ctx.textAlign = "right"
+      this.ctx.fillText(metric.value, x + width - 10 * scale, centerY + fontSize / 3)
+      this.ctx.restore()
+    })
+  }
+
+  drawHorizontalArtistProfile(x, y, width, height, data, scale = 1) {
+    // Aumentar la altura del perfil
+    const profileCardHeight = Math.max(height * 1.3, 120 * scale)
+
+    // Fondo del perfil
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.2)"
+    this.ctx.shadowBlur = 10 * scale
+    this.ctx.shadowOffsetY = 5 * scale
+
+    this.ctx.fillStyle = "#1F2937"
+    this.roundRect(this.ctx, x, y, width, profileCardHeight, 15 * scale)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    // Foto de perfil más grande
+    const profileSize = Math.min(profileCardHeight * 0.65, 90 * scale)
+    const profileX = x + 15 * scale
+    const profileY = y + (profileCardHeight - profileSize) / 2
+
+    this.ctx.save()
+    this.ctx.beginPath()
+    this.ctx.arc(profileX + profileSize / 2, profileY + profileSize / 2, profileSize / 2, 0, Math.PI * 2)
+    this.ctx.clip()
+
+    if (this.images.torneoPerfil) {
+      this.drawImageFit(this.images.torneoPerfil, profileX, profileY, profileSize, profileSize, "torneoPerfil")
+    } else {
+      this.ctx.fillStyle = "#8B5CF6"
+      this.ctx.fill()
+    }
+    this.ctx.restore()
+
+    // Anillo del perfil
+    this.ctx.save()
+    this.ctx.strokeStyle = "#8B5CF6"
+    this.ctx.lineWidth = 4 * scale
+    this.ctx.beginPath()
+    this.ctx.arc(profileX + profileSize / 2, profileY + profileSize / 2, profileSize / 2 + 3 * scale, 0, Math.PI * 2)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    // Información del artista con texto más grande
+    const fontSize = Math.min(32 * scale, width * 0.08)
+    const textX = profileX + profileSize + 20 * scale
+
+    this.ctx.save()
+    this.ctx.fillStyle = "#FFFFFF"
+    this.ctx.font = `bold ${fontSize}px Inter`
+    this.ctx.textAlign = "left"
+    this.ctx.fillText(data.artista, textX, y + profileCardHeight / 2 - 8 * scale)
+
+    this.ctx.font = `${fontSize * 0.8}px Inter`
+    this.ctx.fillStyle = "#9CA3AF"
+    this.ctx.fillText(data.especialidad, textX, y + profileCardHeight / 2 + 25 * scale)
+    this.ctx.restore()
+  }
+
+  // Métodos de dibujo elegantes para otras plantillas
+  drawArtisticElegantBackground() {
+    const gradient = this.ctx.createRadialGradient(
+      this.canvas.width / 2,
+      this.canvas.height / 2,
+      0,
+      this.canvas.width / 2,
+      this.canvas.height / 2,
+      Math.max(this.canvas.width, this.canvas.height) / 2,
+    )
+
+    if (this.isDarkMode) {
+      gradient.addColorStop(0, "#1e1b4b")
+      gradient.addColorStop(0.4, "#312e81")
+      gradient.addColorStop(0.8, "#1e293b")
+      gradient.addColorStop(1, "#0f172a")
+    } else {
+      gradient.addColorStop(0, "#fdf4ff")
+      gradient.addColorStop(0.4, "#f3e8ff")
+      gradient.addColorStop(0.8, "#e0e7ff")
+      gradient.addColorStop(1, "#c7d2fe")
+    }
+
+    this.ctx.fillStyle = gradient
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
+  }
+
+  drawSubtleLighting() {
+    // Efectos de iluminación muy sutiles
+    const lightSources = [
+      { x: 150, y: 150, color: "#8b5cf6", intensity: 0.15 },
+      { x: this.canvas.width - 150, y: 200, color: "#ec4899", intensity: 0.12 },
+      { x: 200, y: this.canvas.height - 350, color: "#10b981", intensity: 0.1 },
+    ]
+
+    lightSources.forEach((light) => {
+      this.ctx.save()
+      this.ctx.globalAlpha = light.intensity
+
+      const lightGradient = this.ctx.createRadialGradient(light.x, light.y, 0, light.x, light.y, 100)
+      lightGradient.addColorStop(0, light.color)
+      lightGradient.addColorStop(1, "transparent")
+
+      this.ctx.fillStyle = lightGradient
+      this.ctx.beginPath()
+      this.ctx.arc(light.x, light.y, 100, 0, Math.PI * 2)
+      this.ctx.fill()
+      this.ctx.restore()
+    })
+  }
+
+  drawElegantMosaico(x, y, width, height, count) {
+    const spacing = 15
+
+    if (count === 1) {
+      this.drawElegantFrame(x, y, width, height, 0)
+    } else if (count === 2) {
+      const halfWidth = (width - spacing) / 2
+      this.drawElegantFrame(x, y, halfWidth, height, 0)
+      this.drawElegantFrame(x + halfWidth + spacing, y, halfWidth, height, 1)
+    } else if (count === 3) {
+      const halfHeight = (height - spacing) / 2
+      const halfWidth = (width - spacing) / 2
+      this.drawElegantFrame(x, y, halfWidth, height, 0)
+      this.drawElegantFrame(x + halfWidth + spacing, y, halfWidth, halfHeight, 1)
+      this.drawElegantFrame(x + halfWidth + spacing, y + halfHeight + spacing, halfWidth, halfHeight, 2)
+    } else if (count === 4) {
+      const halfWidth = (width - spacing) / 2
+      const halfHeight = (height - spacing) / 2
+      this.drawElegantFrame(x, y, halfWidth, halfHeight, 0)
+      this.drawElegantFrame(x + halfWidth + spacing, y, halfWidth, halfHeight, 1)
+      this.drawElegantFrame(x, y + halfHeight + spacing, halfWidth, halfHeight, 2)
+      this.drawElegantFrame(x + halfWidth + spacing, y + halfHeight + spacing, halfWidth, halfHeight, 3)
+    }
+  }
+
+  drawElegantFrame(x, y, width, height, index) {
+    // Marco elegante
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.2)"
+    this.ctx.shadowBlur = 15
+    this.ctx.shadowOffsetY = 8
+
+    const frameGradient = this.ctx.createLinearGradient(x, y, x + width, y + height)
+    frameGradient.addColorStop(0, this.isDarkMode ? "#374151" : "#ffffff")
+    frameGradient.addColorStop(1, this.isDarkMode ? "#1f2937" : "#f8fafc")
+
+    this.ctx.fillStyle = frameGradient
+    this.roundRect(this.ctx, x, y, width, height, 20)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    // Imagen
+    const imageMargin = 10
+    const imageX = x + imageMargin
+    const imageY = y + imageMargin
+    const imageWidth = width - imageMargin * 2
+    const imageHeight = height - imageMargin * 2
+
+    if (this.images.publicacion[index]) {
+      this.ctx.save()
+      this.roundRect(this.ctx, imageX, imageY, imageWidth, imageHeight, 15)
+      this.ctx.clip()
+      this.drawImageFit(this.images.publicacion[index], imageX, imageY, imageWidth, imageHeight, `publicacion-${index}`)
+      this.ctx.restore()
+    } else {
+      this.ctx.save()
+      this.ctx.fillStyle = this.isDarkMode ? "rgba(75, 85, 99, 0.4)" : "rgba(229, 231, 235, 0.6)"
+      this.roundRect(this.ctx, imageX, imageY, imageWidth, imageHeight, 15)
+      this.ctx.fill()
+
+      this.ctx.fillStyle = this.isDarkMode ? "#9ca3af" : "#6b7280"
+      this.ctx.font = "24px Inter"
+      this.ctx.textAlign = "center"
+      this.ctx.fillText(`🖼️ ${index + 1}`, imageX + imageWidth / 2, imageY + imageHeight / 2)
+      this.ctx.restore()
+    }
+
+    // Borde elegante
+    this.ctx.save()
+    this.ctx.strokeStyle = this.isDarkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(124, 58, 237, 0.2)"
+    this.ctx.lineWidth = 1.5
+    this.roundRect(this.ctx, x, y, width, height, 20)
+    this.ctx.stroke()
+    this.ctx.restore()
+  }
+
+  drawElegantFloatingArtistBadge(x, y, width, data, profileImage, profileKey) {
+    const badgeHeight = 120
+
+    // Fondo elegante
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.25)"
+    this.ctx.shadowBlur = 20
+    this.ctx.shadowOffsetY = 10
+
+    const badgeGradient = this.ctx.createLinearGradient(x, y, x + width, y + badgeHeight)
+    if (this.isDarkMode) {
+      badgeGradient.addColorStop(0, "rgba(30, 41, 59, 0.95)")
+      badgeGradient.addColorStop(1, "rgba(15, 23, 42, 0.9)")
+    } else {
+      badgeGradient.addColorStop(0, "rgba(255, 255, 255, 0.95)")
+      badgeGradient.addColorStop(1, "rgba(249, 250, 251, 0.9)")
+    }
+
+    this.ctx.fillStyle = badgeGradient
+    this.roundRect(this.ctx, x, y, width, badgeHeight, 25)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    // Borde elegante
+    this.ctx.save()
+    this.ctx.strokeStyle = this.isDarkMode ? "rgba(139, 92, 246, 0.4)" : "rgba(124, 58, 237, 0.3)"
+    this.ctx.lineWidth = 2
+    this.roundRect(this.ctx, x, y, width, badgeHeight, 25)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    // Contenido del badge
+    const profileSize = 80
+    const profileX = x + 20
+    const profileY = y + 20
+
+    // Foto de perfil
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.3)"
+    this.ctx.shadowBlur = 10
+    this.ctx.beginPath()
+    this.ctx.arc(profileX + profileSize / 2, profileY + profileSize / 2, profileSize / 2, 0, Math.PI * 2)
+    this.ctx.clip()
+
+    if (profileImage) {
+      this.drawImageFit(profileImage, profileX, profileY, profileSize, profileSize, profileKey)
+    } else {
+      const profileGradient = this.ctx.createRadialGradient(
+        profileX + profileSize / 2,
+        profileY + profileSize / 2,
+        0,
+        profileX + profileSize / 2,
+        profileY + profileSize / 2,
+        profileSize / 2,
+      )
+      profileGradient.addColorStop(0, this.isDarkMode ? "#475569" : "#e5e7eb")
+      profileGradient.addColorStop(1, this.isDarkMode ? "#334155" : "#d1d5db")
+      this.ctx.fillStyle = profileGradient
+      this.ctx.fill()
+    }
+    this.ctx.restore()
+
+    // Anillo de perfil elegante
+    this.ctx.save()
+    this.ctx.strokeStyle = this.isDarkMode ? "#ec4899" : "#db2777"
+    this.ctx.lineWidth = 3
+    this.ctx.beginPath()
+    this.ctx.arc(profileX + profileSize / 2, profileY + profileSize / 2, profileSize / 2 + 2, 0, Math.PI * 2)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    // Información del artista
+    this.ctx.save()
+    this.ctx.fillStyle = this.isDarkMode ? "#f1f5f9" : "#1f2937"
+    this.ctx.font = "bold 22px Inter"
+    this.ctx.textAlign = "left"
+    this.ctx.fillText(data.artista, profileX + profileSize + 20, y + 50)
+
+    const badge = this.getRoleBadge(data.rol)
+    this.ctx.font = "16px Inter"
+    this.ctx.fillStyle = this.isDarkMode ? "#cbd5e1" : "#6b7280"
+    this.ctx.fillText(data.especialidad || badge.text, profileX + profileSize + 20, y + 75)
+    this.ctx.restore()
+  }
+
+  drawElegantGalleryLogo(x, y) {
+    this.drawRealLogo(x, y, 32)
+  }
+
+  // Métodos para plantilla de entrevista elegante
+  drawElegantInterviewBackground() {
+    const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height)
+
+    if (this.isDarkMode) {
+      gradient.addColorStop(0, "#0f0f23")
+      gradient.addColorStop(0.3, "#1a1a3a")
+      gradient.addColorStop(0.6, "#2d1b69")
+      gradient.addColorStop(1, "#0f172a")
+    } else {
+      gradient.addColorStop(0, "#fef7ff")
+      gradient.addColorStop(0.3, "#faf5ff")
+      gradient.addColorStop(0.6, "#f3e8ff")
+      gradient.addColorStop(1, "#e9d5ff")
+    }
+
+    this.ctx.fillStyle = gradient
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
+  }
+
+  drawSubtleStudioLighting() {
+    // Iluminación muy sutil
+    const spotlights = [
+      { x: this.canvas.width * 0.2, y: 200, intensity: 0.2 },
+      { x: this.canvas.width * 0.8, y: 300, intensity: 0.15 },
+      { x: this.canvas.width * 0.5, y: 150, intensity: 0.1 },
+    ]
+
+    spotlights.forEach((light) => {
+      this.ctx.save()
+      this.ctx.globalAlpha = light.intensity
+
+      const lightGradient = this.ctx.createRadialGradient(light.x, light.y, 0, light.x, light.y, 150)
+      lightGradient.addColorStop(0, this.isDarkMode ? "rgba(139, 92, 246, 0.4)" : "rgba(255, 255, 255, 0.6)")
+      lightGradient.addColorStop(1, "transparent")
+
+      this.ctx.fillStyle = lightGradient
+      this.ctx.beginPath()
+      this.ctx.arc(light.x, light.y, 150, 0, Math.PI * 2)
+      this.ctx.fill()
+      this.ctx.restore()
+    })
+  }
+
+  drawElegantTitle(text, x, y) {
+    // Título elegante
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.2)"
+    this.ctx.shadowBlur = 15
+    this.ctx.shadowOffsetY = 6
+
+    const titleGradient = this.ctx.createLinearGradient(x - 320, y - 45, x + 320, y + 25)
+    titleGradient.addColorStop(0, this.isDarkMode ? "rgba(30, 41, 59, 0.9)" : "rgba(255, 255, 255, 0.9)")
+    titleGradient.addColorStop(1, this.isDarkMode ? "rgba(15, 23, 42, 0.85)" : "rgba(249, 250, 251, 0.85)")
+
+    this.ctx.fillStyle = titleGradient
+    this.roundRect(this.ctx, x - 340, y - 55, 680, 80, 35)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    // Borde elegante
+    this.ctx.save()
+    this.ctx.strokeStyle = this.isDarkMode ? "rgba(139, 92, 246, 0.4)" : "rgba(124, 58, 237, 0.3)"
+    this.ctx.lineWidth = 2
+    this.roundRect(this.ctx, x - 340, y - 55, 680, 80, 35)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    // Texto del título
+    this.ctx.save()
+    this.ctx.fillStyle = this.isDarkMode ? "#f1f5f9" : "#1f2937"
+    this.ctx.font = "bold 46px Inter"
+    this.ctx.textAlign = "center"
+    this.ctx.fillText(text, x, y)
+    this.ctx.restore()
+  }
+
+  drawElegantProfileSection(centerX, centerY, data, profileImage, profileKey) {
+    const profileSize = 180
+
+    // Imagen de perfil elegante
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.3)"
+    this.ctx.shadowBlur = 20
+    this.ctx.shadowOffsetY = 10
+
+    this.ctx.beginPath()
+    this.ctx.arc(centerX, centerY, profileSize / 2, 0, Math.PI * 2)
+    this.ctx.clip()
+
+    if (profileImage) {
+      this.drawImageFit(profileImage, centerX - profileSize / 2, centerY - profileSize / 2, profileSize, profileSize, profileKey)
+    } else {
+      const profileGradient = this.ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, profileSize / 2)
+      profileGradient.addColorStop(0, this.isDarkMode ? "#374151" : "#e5e7eb")
+      profileGradient.addColorStop(1, this.isDarkMode ? "#1f2937" : "#d1d5db")
+      this.ctx.fillStyle = profileGradient
+      this.ctx.fill()
+    }
+    this.ctx.restore()
+
+    // Anillo de perfil elegante
+    this.ctx.save()
+    this.ctx.strokeStyle = this.isDarkMode ? "#8b5cf6" : "#7c3aed"
+    this.ctx.lineWidth = 6
+    this.ctx.beginPath()
+    this.ctx.arc(centerX, centerY, profileSize / 2 + 4, 0, Math.PI * 2)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    // Badge de rol
+    const badge = this.getRoleBadge(data.rol)
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.4)"
+    this.ctx.shadowBlur = 8
+    this.ctx.fillStyle = badge.color
+    this.ctx.beginPath()
+    this.ctx.arc(centerX + 70, centerY - 70, 30, 0, Math.PI * 2)
+    this.ctx.fill()
+
+    this.ctx.strokeStyle = this.isDarkMode ? "#0f172a" : "#ffffff"
+    this.ctx.lineWidth = 3
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    // Información del artista
+    this.ctx.save()
+    this.ctx.fillStyle = this.isDarkMode ? "#f1f5f9" : "#1f2937"
+    this.ctx.font = "bold 40px Inter"
+    this.ctx.textAlign = "center"
+    this.ctx.fillText(data.nombre, centerX, centerY + 140)
+
+    this.ctx.font = "26px Inter"
+    this.ctx.fillStyle = this.isDarkMode ? "#cbd5e1" : "#6b7280"
+    this.ctx.fillText(data.especialidad, centerX, centerY + 175)
+
+    // Descripción
+    this.ctx.font = "22px Inter"
+    this.drawWrappedText(data.descripcion, centerX, centerY + 220, 800, 30, this.isDarkMode ? "#94a3b8" : "#9ca3af")
+    this.ctx.restore()
+  }
+
+  drawElegantQASection(pregunta, respuesta, startY, artistName, index) {
+    const margin = 100
+    const bubbleWidth = this.canvas.width - margin * 2
+    const bubblePadding = 35
+
+    // Pregunta elegante
+    const questionHeight = this.calculateTextHeight(pregunta, bubbleWidth - bubblePadding * 2, 26) + 100
+
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.2)"
+    this.ctx.shadowBlur = 15
+    this.ctx.shadowOffsetY = 6
+
+    const questionGradient = this.ctx.createLinearGradient(
+      margin,
+      startY,
+      margin + bubbleWidth,
+      startY + questionHeight,
+    )
+    if (this.isDarkMode) {
+      questionGradient.addColorStop(0, "rgba(55, 65, 81, 0.9)")
+      questionGradient.addColorStop(1, "rgba(31, 41, 55, 0.85)")
+    } else {
+      questionGradient.addColorStop(0, "rgba(255, 255, 255, 0.9)")
+      questionGradient.addColorStop(1, "rgba(248, 250, 252, 0.85)")
+    }
+
+    this.ctx.fillStyle = questionGradient
+    this.roundRect(this.ctx, margin, startY, bubbleWidth, questionHeight, 25)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    // Borde elegante
+    this.ctx.save()
+    this.ctx.strokeStyle = this.isDarkMode ? "rgba(139, 92, 246, 0.4)" : "rgba(124, 58, 237, 0.3)"
+    this.ctx.lineWidth = 2
+    this.roundRect(this.ctx, margin, startY, bubbleWidth, questionHeight, 25)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    // Emisor de la pregunta
+    this.ctx.save()
+    this.ctx.fillStyle = "#8b5cf6"
+    this.ctx.font = "bold 22px Inter"
+    this.ctx.textAlign = "left"
+    this.ctx.fillText("🎨 Nexo Artistico", margin + bubblePadding, startY + 40)
+    this.ctx.restore()
+
+    // Texto de la pregunta
+    this.ctx.save()
+    this.ctx.fillStyle = this.isDarkMode ? "#f1f5f9" : "#1f2937"
+    this.ctx.font = "26px Inter"
+    this.drawWrappedText(pregunta, margin + bubblePadding, startY + 75, bubbleWidth - bubblePadding * 2, 34)
+    this.ctx.restore()
+
+    // Respuesta elegante
+    const answerY = startY + questionHeight + 40
+    const answerHeight = this.calculateTextHeight(respuesta, bubbleWidth - bubblePadding * 2, 26) + 100
+
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.2)"
+    this.ctx.shadowBlur = 15
+    this.ctx.shadowOffsetY = 6
+
+    const answerGradient = this.ctx.createLinearGradient(margin, answerY, margin + bubbleWidth, answerY + answerHeight)
+    if (this.isDarkMode) {
+      answerGradient.addColorStop(0, "rgba(30, 58, 138, 0.9)")
+      answerGradient.addColorStop(1, "rgba(30, 64, 175, 0.85)")
+    } else {
+      answerGradient.addColorStop(0, "rgba(219, 234, 254, 0.9)")
+      answerGradient.addColorStop(1, "rgba(191, 219, 254, 0.85)")
+    }
+
+    this.ctx.fillStyle = answerGradient
+    this.roundRect(this.ctx, margin, answerY, bubbleWidth, answerHeight, 25)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    // Borde elegante
+    this.ctx.save()
+    this.ctx.strokeStyle = this.isDarkMode ? "rgba(59, 130, 246, 0.4)" : "rgba(37, 99, 235, 0.3)"
+    this.ctx.lineWidth = 2
+    this.roundRect(this.ctx, margin, answerY, bubbleWidth, answerHeight, 25)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    // Emisor de la respuesta
+    this.ctx.save()
+    this.ctx.fillStyle = "#3b82f6"
+    this.ctx.font = "bold 22px Inter"
+    this.ctx.textAlign = "left"
+    this.ctx.fillText(`👤 ${artistName}`, margin + bubblePadding, answerY + 40)
+    this.ctx.restore()
+
+    // Texto de la respuesta
+    this.ctx.save()
+    this.ctx.fillStyle = this.isDarkMode ? "#f1f5f9" : "#1f2937"
+    this.ctx.font = "26px Inter"
+    this.drawWrappedText(respuesta, margin + bubblePadding, answerY + 75, bubbleWidth - bubblePadding * 2, 34)
+    this.ctx.restore()
+
+    return answerY + answerHeight
+  }
+
+  drawElegantInterviewLogo(x, y) {
+    this.drawRealLogo(x, y, 32)
+  }
+
+  // ==================== Plantilla VS ====================
+  renderVsTemplate() {
+    const data = this.getVsData()
+
+    this.drawModernBackground()
+
+    const aspectRatio = this.canvas.width / this.canvas.height
+    if (aspectRatio > 1.1) {
+      this.renderVsHorizontal(data)
+    } else {
+      this.renderVsVertical(data)
+    }
+
+    this.drawModernLogo(40, this.canvas.height - 40)
+  }
+
+  renderVsHorizontal(data) {
+    const margin = 40
+    const titleHeight = 90
+    const titleBoxWidth = Math.min(this.canvas.width - margin * 2, 700)
+
+    this.drawVsTitle(data.titulo, this.canvas.width / 2, margin + titleHeight / 2, titleBoxWidth, titleHeight)
+
+    const gap = 130
+    const contentY = margin + titleHeight + 30
+    const contentHeight = this.canvas.height - contentY - margin
+    const halfWidth = (this.canvas.width - margin * 2 - gap) / 2
+    const leftX = margin
+    const rightX = margin + halfWidth + gap
+
+    this.drawVsArtistPanel(leftX, contentY, halfWidth, contentHeight, data.a, this.images.vsA, this.images.vsAPerfil, data.ganador === "a", "vsA", "vsAPerfil")
+    this.drawVsArtistPanel(rightX, contentY, halfWidth, contentHeight, data.b, this.images.vsB, this.images.vsBPerfil, data.ganador === "b", "vsB", "vsBPerfil")
+
+    this.drawVsBadge(this.canvas.width / 2, contentY + contentHeight / 2)
+  }
+
+  renderVsVertical(data) {
+    const margin = Math.min(this.canvas.width * 0.05, 40)
+    const titleHeight = 80
+    const titleBoxWidth = this.canvas.width - margin * 2
+
+    this.drawVsTitle(data.titulo, this.canvas.width / 2, margin + titleHeight / 2, titleBoxWidth, titleHeight)
+
+    const gap = 110
+    const contentY = margin + titleHeight + 20
+    const availableHeight = this.canvas.height - contentY - margin
+    const halfHeight = (availableHeight - gap) / 2
+    const panelWidth = this.canvas.width - margin * 2
+    const topY = contentY
+    const bottomY = contentY + halfHeight + gap
+
+    this.drawVsArtistPanel(margin, topY, panelWidth, halfHeight, data.a, this.images.vsA, this.images.vsAPerfil, data.ganador === "a", "vsA", "vsAPerfil")
+    this.drawVsArtistPanel(margin, bottomY, panelWidth, halfHeight, data.b, this.images.vsB, this.images.vsBPerfil, data.ganador === "b", "vsB", "vsBPerfil")
+
+    this.drawVsBadge(this.canvas.width / 2, topY + halfHeight + gap / 2)
+  }
+
+  drawVsTitle(text, centerX, centerY, boxWidth, boxHeight) {
+    const x = centerX - boxWidth / 2
+    const y = centerY - boxHeight / 2
+
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.3)"
+    this.ctx.shadowBlur = 15
+    this.ctx.shadowOffsetY = 6
+    const gradient = this.ctx.createLinearGradient(x, y, x + boxWidth, y + boxHeight)
+    gradient.addColorStop(0, "rgba(30, 41, 59, 0.9)")
+    gradient.addColorStop(1, "rgba(15, 23, 42, 0.85)")
+    this.ctx.fillStyle = gradient
+    this.roundRect(this.ctx, x, y, boxWidth, boxHeight, 25)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    this.ctx.save()
+    this.ctx.strokeStyle = "rgba(139, 92, 246, 0.4)"
+    this.ctx.lineWidth = 2
+    this.roundRect(this.ctx, x, y, boxWidth, boxHeight, 25)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    this.ctx.save()
+    this.ctx.fillStyle = "#F1F5F9"
+    const fontSize = Math.min(boxHeight * 0.4, boxWidth * 0.06, 38)
+    this.ctx.font = `bold ${fontSize}px Inter`
+    this.ctx.textAlign = "center"
+    this.ctx.fillText(text, centerX, centerY + fontSize * 0.3)
+    this.ctx.restore()
+  }
+
+  drawVsArtistPanel(x, y, width, height, artist, artworkImg, profileImg, isWinner, artworkKey, profileKey) {
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.3)"
+    this.ctx.shadowBlur = 20
+    this.ctx.shadowOffsetY = 10
+    this.ctx.fillStyle = "#1F2937"
+    this.roundRect(this.ctx, x, y, width, height, 20)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    if (isWinner) {
+      this.ctx.save()
+      this.ctx.strokeStyle = "#FBBF24"
+      this.ctx.lineWidth = 6
+      this.roundRect(this.ctx, x + 3, y + 3, width - 6, height - 6, 18)
+      this.ctx.stroke()
+      this.ctx.restore()
+    }
+
+    const padding = 15
+    const gap = 12
+    const profileSize = Math.min(64, height * 0.14, width * 0.16)
+    const bottomBarHeight = profileSize
+    const paddingBottom = 15
+
+    const imageX = x + padding
+    const imageY = y + padding
+    const imageWidth = width - padding * 2
+    const imageHeight = height - padding - gap - bottomBarHeight - paddingBottom
+
+    this.ctx.save()
+    this.roundRect(this.ctx, imageX, imageY, imageWidth, imageHeight, 14)
+    this.ctx.clip()
+    if (artworkImg) {
+      this.drawImageFit(artworkImg, imageX, imageY, imageWidth, imageHeight, artworkKey)
+    } else {
+      this.ctx.fillStyle = "#374151"
+      this.ctx.fill()
+      this.ctx.fillStyle = "#9CA3AF"
+      this.ctx.font = `${Math.min(width * 0.05, 22)}px Inter`
+      this.ctx.textAlign = "center"
+      this.ctx.fillText("📸 Sube una imagen", imageX + imageWidth / 2, imageY + imageHeight / 2)
+    }
+    this.ctx.restore()
+
+    const infoY = imageY + imageHeight + gap
+    const profileCenterX = x + padding + profileSize / 2
+    const profileCenterY = infoY + profileSize / 2
+
+    this.ctx.save()
+    this.ctx.beginPath()
+    this.ctx.arc(profileCenterX, profileCenterY, profileSize / 2, 0, Math.PI * 2)
+    this.ctx.clip()
+    if (profileImg) {
+      this.drawImageFit(profileImg, profileCenterX - profileSize / 2, profileCenterY - profileSize / 2, profileSize, profileSize, profileKey)
+    } else {
+      this.ctx.fillStyle = "#8B5CF6"
+      this.ctx.fill()
+    }
+    this.ctx.restore()
+
+    this.ctx.save()
+    this.ctx.strokeStyle = isWinner ? "#FBBF24" : "#8B5CF6"
+    this.ctx.lineWidth = 3
+    this.ctx.beginPath()
+    this.ctx.arc(profileCenterX, profileCenterY, profileSize / 2 + 3, 0, Math.PI * 2)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    const textX = profileCenterX + profileSize / 2 + 15
+    const nameFontSize = Math.min(width * 0.07, 26)
+
+    this.ctx.save()
+    this.ctx.fillStyle = "#FFFFFF"
+    this.ctx.font = `bold ${nameFontSize}px Inter`
+    this.ctx.textAlign = "left"
+    this.ctx.fillText(artist.nombre, textX, profileCenterY - 6)
+
+    this.ctx.font = `${nameFontSize * 0.65}px Inter`
+    this.ctx.fillStyle = "#9CA3AF"
+    this.ctx.fillText(artist.especialidad, textX, profileCenterY + nameFontSize * 0.55)
+    this.ctx.restore()
+
+    const scoreRadius = Math.min(32, profileSize / 2 + 4)
+    const scoreX = x + width - scoreRadius - 20
+    const scoreY = infoY + profileSize / 2
+
+    this.ctx.save()
+    this.ctx.fillStyle = "#111827"
+    this.ctx.beginPath()
+    this.ctx.arc(scoreX, scoreY, scoreRadius, 0, Math.PI * 2)
+    this.ctx.fill()
+    this.ctx.strokeStyle = isWinner ? "#FBBF24" : "#8B5CF6"
+    this.ctx.lineWidth = 4
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    this.ctx.save()
+    this.ctx.fillStyle = "#FFFFFF"
+    this.ctx.font = `bold ${Math.min(scoreRadius * 0.55, 20)}px Inter`
+    this.ctx.textAlign = "center"
+    this.ctx.fillText(artist.puntaje, scoreX, scoreY + 6)
+    this.ctx.restore()
+  }
+
+  drawVsBadge(centerX, centerY) {
+    const radius = 55
+
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.4)"
+    this.ctx.shadowBlur = 20
+    const gradient = this.ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius)
+    gradient.addColorStop(0, "#F59E0B")
+    gradient.addColorStop(1, "#DC2626")
+    this.ctx.fillStyle = gradient
+    this.ctx.beginPath()
+    this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    this.ctx.save()
+    this.ctx.strokeStyle = "#FFFFFF"
+    this.ctx.lineWidth = 4
+    this.ctx.beginPath()
+    this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    this.ctx.save()
+    this.ctx.fillStyle = "#FFFFFF"
+    this.ctx.font = "bold 38px Inter"
+    this.ctx.textAlign = "center"
+    this.ctx.fillText("VS", centerX, centerY + 14)
+    this.ctx.restore()
+  }
+
+  getVsData() {
+    return {
+      titulo: document.getElementById("vs-titulo").value,
+      a: {
+        nombre: document.getElementById("vs-a-nombre").value,
+        puntaje: document.getElementById("vs-a-puntaje").value,
+        especialidad: document.getElementById("vs-a-especialidad").value,
+      },
+      b: {
+        nombre: document.getElementById("vs-b-nombre").value,
+        puntaje: document.getElementById("vs-b-puntaje").value,
+        especialidad: document.getElementById("vs-b-especialidad").value,
+      },
+      ganador: document.getElementById("vs-ganador").value,
+    }
+  }
+
+  // ==================== Plantilla Bracket (llaves 1v1) ====================
+  buildBracketConfig(size) {
+    this.bracketSize = size
+    const round0Count = size / 2
+    const totalRounds = Math.log2(size)
+
+    const previousRound0 = this.bracket ? this.bracket.round0 : []
+    const round0 = Array.from({ length: round0Count }, (_, i) => ({
+      p1: previousRound0[i] ? previousRound0[i].p1 : "",
+      p2: previousRound0[i] ? previousRound0[i].p2 : "",
+    }))
+
+    const previousWinners = this.bracket ? this.bracket.winners : []
+    const winners = Array.from({ length: totalRounds }, (_, r) => {
+      const count = round0Count / Math.pow(2, r)
+      return Array.from({ length: count }, (_, m) => (previousWinners[r] && previousWinners[r][m] !== undefined ? previousWinners[r][m] : null))
+    })
+
+    this.bracket = { round0, winners }
+
+    this.renderBracketRound0Inputs()
+    this.renderBracketDerivedRounds()
+    this.updatePreview()
+  }
+
+  getRoundLabel(matchesCount) {
+    switch (matchesCount) {
+      case 1:
+        return "Final"
+      case 2:
+        return "Semifinal"
+      case 4:
+        return "Cuartos de Final"
+      case 8:
+        return "Octavos de Final"
+      default:
+        return `Ronda de ${matchesCount * 2}`
+    }
+  }
+
+  renderBracketRound0Inputs() {
+    const container = document.getElementById("bracket-round0")
+    container.innerHTML = ""
+
+    const heading = document.createElement("h3")
+    heading.className = "bracket-round-title"
+    heading.textContent = this.getRoundLabel(this.bracket.round0.length)
+    container.appendChild(heading)
+
+    this.bracket.round0.forEach((match, i) => {
+      const div = document.createElement("div")
+      div.className = "bracket-match"
+      div.innerHTML = `
+        <div class="form-group">
+          <label>Partido ${i + 1} - Participante 1</label>
+          <input type="text" class="bracket-p1" data-match="${i}" placeholder="Nombre del artista" value="${match.p1}">
+        </div>
+        <div class="form-group">
+          <label>Partido ${i + 1} - Participante 2</label>
+          <input type="text" class="bracket-p2" data-match="${i}" placeholder="Nombre del artista" value="${match.p2}">
+        </div>
+        <div class="form-group">
+          <label>Ganador</label>
+          <select class="bracket-winner-r0" data-match="${i}">
+            <option value="">-- Selecciona ganador --</option>
+            <option value="p1">${match.p1 || "Participante 1"}</option>
+            <option value="p2">${match.p2 || "Participante 2"}</option>
+          </select>
+        </div>
+      `
+      container.appendChild(div)
+    })
+
+    container.querySelectorAll(".bracket-p1, .bracket-p2").forEach((input) => {
+      input.addEventListener("input", (e) => {
+        const idx = Number.parseInt(e.target.dataset.match)
+        const field = e.target.classList.contains("bracket-p1") ? "p1" : "p2"
+        this.bracket.round0[idx][field] = e.target.value
+
+        const select = container.querySelector(`.bracket-winner-r0[data-match="${idx}"]`)
+        select.options[1].textContent = this.bracket.round0[idx].p1 || "Participante 1"
+        select.options[2].textContent = this.bracket.round0[idx].p2 || "Participante 2"
+
+        this.renderBracketDerivedRounds()
+        this.updatePreview()
+      })
+    })
+
+    container.querySelectorAll(".bracket-winner-r0").forEach((select) => {
+      select.addEventListener("change", (e) => {
+        const idx = Number.parseInt(e.target.dataset.match)
+        this.bracket.winners[0][idx] = e.target.value || null
+        this.renderBracketDerivedRounds()
+        this.updatePreview()
+      })
+    })
+  }
+
+  renderBracketDerivedRounds() {
+    const container = document.getElementById("bracket-derived-rounds")
+    container.innerHTML = ""
+    const totalRounds = Math.log2(this.bracketSize)
+
+    for (let r = 1; r < totalRounds; r++) {
+      const matchesCount = this.bracket.round0.length / Math.pow(2, r)
+      const roundDiv = document.createElement("div")
+
+      const heading = document.createElement("h3")
+      heading.className = "bracket-round-title"
+      heading.textContent = this.getRoundLabel(matchesCount)
+      roundDiv.appendChild(heading)
+
+      for (let m = 0; m < matchesCount; m++) {
+        const nameA = this.getBracketParticipant(r, m, "p1")
+        const nameB = this.getBracketParticipant(r, m, "p2")
+        const currentWinner = this.bracket.winners[r][m]
+        const ready = Boolean(nameA && nameB)
+
+        const div = document.createElement("div")
+        div.className = "bracket-match"
+        div.innerHTML = `
+          <div class="form-group">
+            <label>Partido ${m + 1}: ${nameA || "Por definir"} vs ${nameB || "Por definir"}</label>
+            <select class="bracket-winner-derived" data-round="${r}" data-match="${m}" ${ready ? "" : "disabled"}>
+              <option value="">-- Selecciona ganador --</option>
+              <option value="p1" ${currentWinner === "p1" ? "selected" : ""}>${nameA || "Participante 1"}</option>
+              <option value="p2" ${currentWinner === "p2" ? "selected" : ""}>${nameB || "Participante 2"}</option>
+            </select>
+          </div>
+        `
+        roundDiv.appendChild(div)
+      }
+
+      container.appendChild(roundDiv)
+    }
+
+    const totalRoundsFinal = Math.log2(this.bracketSize)
+    const championName = this.getBracketWinnerName(totalRoundsFinal - 1, 0)
+    const championEl = document.getElementById("bracket-champion-display")
+    if (championEl) {
+      championEl.textContent = championName ? `🏆 Campeón: ${championName}` : ""
+    }
+
+    container.querySelectorAll(".bracket-winner-derived").forEach((select) => {
+      select.addEventListener("change", (e) => {
+        const r = Number.parseInt(e.target.dataset.round)
+        const m = Number.parseInt(e.target.dataset.match)
+        this.bracket.winners[r][m] = e.target.value || null
+        this.renderBracketDerivedRounds()
+        this.updatePreview()
+      })
+    })
+  }
+
+  getBracketParticipant(round, match, slot) {
+    if (round === 0) {
+      return this.bracket.round0[match][slot] || ""
+    }
+    const sourceMatch = slot === "p1" ? match * 2 : match * 2 + 1
+    return this.getBracketWinnerName(round - 1, sourceMatch)
+  }
+
+  getBracketWinnerName(round, match) {
+    const roundWinners = this.bracket.winners[round]
+    const winnerSlot = roundWinners ? roundWinners[match] : null
+    if (!winnerSlot) return ""
+    return this.getBracketParticipant(round, match, winnerSlot)
+  }
+
+  renderBracketTemplate() {
+    const titulo = document.getElementById("bracket-titulo").value
+    const size = this.bracketSize
+    const totalRounds = Math.log2(size)
+    const round0Count = size / 2
+
+    this.drawModernBackground()
+
+    const margin = 40
+    const titleHeight = 70
+    const titleBoxWidth = Math.min(this.canvas.width - margin * 2, 700)
+    this.drawVsTitle(titulo, this.canvas.width / 2, margin + titleHeight / 2, titleBoxWidth, titleHeight)
+
+    const areaX = margin
+    const areaY = margin + titleHeight + 40
+    const areaWidth = this.canvas.width - margin * 2
+    const areaHeight = this.canvas.height - areaY - margin - 90
+
+    const slot = areaHeight / round0Count
+    const boxHeight = Math.max(Math.min(60, slot * 0.65), 30)
+    const boxWidth = Math.min(areaWidth / totalRounds - 30, 220)
+    const colGap = totalRounds > 1 ? (areaWidth - boxWidth * totalRounds) / (totalRounds - 1) : 0
+
+    const positions = []
+    positions[0] = []
+    for (let m = 0; m < round0Count; m++) {
+      positions[0][m] = areaY + slot * m + slot / 2
+    }
+    for (let r = 1; r < totalRounds; r++) {
+      positions[r] = []
+      const count = round0Count / Math.pow(2, r)
+      for (let m = 0; m < count; m++) {
+        positions[r][m] = (positions[r - 1][m * 2] + positions[r - 1][m * 2 + 1]) / 2
+      }
+    }
+
+    this.ctx.save()
+    this.ctx.strokeStyle = "rgba(139, 92, 246, 0.5)"
+    this.ctx.lineWidth = 2
+    for (let r = 0; r < totalRounds - 1; r++) {
+      const x1 = areaX + r * (boxWidth + colGap) + boxWidth
+      const x2 = areaX + (r + 1) * (boxWidth + colGap)
+      const xMid = (x1 + x2) / 2
+      for (let m = 0; m < positions[r].length; m++) {
+        const y1 = positions[r][m]
+        const yNext = positions[r + 1][Math.floor(m / 2)]
+        this.ctx.beginPath()
+        this.ctx.moveTo(x1, y1)
+        this.ctx.lineTo(xMid, y1)
+        this.ctx.lineTo(xMid, yNext)
+        this.ctx.lineTo(x2, yNext)
+        this.ctx.stroke()
+      }
+    }
+    this.ctx.restore()
+
+    for (let r = 0; r < totalRounds; r++) {
+      const x = areaX + r * (boxWidth + colGap)
+      const count = positions[r].length
+
+      this.ctx.save()
+      this.ctx.fillStyle = "#F1F5F9"
+      this.ctx.font = "bold 16px Inter"
+      this.ctx.textAlign = "center"
+      this.ctx.fillText(this.getRoundLabel(count), x + boxWidth / 2, areaY - 15)
+      this.ctx.restore()
+
+      for (let m = 0; m < count; m++) {
+        const y = positions[r][m] - boxHeight / 2
+        const nameA = this.getBracketParticipant(r, m, "p1") || "Por definir"
+        const nameB = this.getBracketParticipant(r, m, "p2") || "Por definir"
+        const winnerSlot = this.bracket.winners[r][m]
+        this.drawBracketMatchBox(x, y, boxWidth, boxHeight, nameA, nameB, winnerSlot)
+      }
+    }
+
+    const championName = this.getBracketWinnerName(totalRounds - 1, 0)
+    this.drawBracketChampion(this.canvas.width / 2, areaY + areaHeight + 45, championName)
+
+    this.drawModernLogo(margin, this.canvas.height - margin)
+  }
+
+  drawBracketMatchBox(x, y, width, height, nameA, nameB, winnerSlot) {
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.3)"
+    this.ctx.shadowBlur = 10
+    this.ctx.fillStyle = "#1F2937"
+    this.roundRect(this.ctx, x, y, width, height, 10)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    this.ctx.save()
+    this.ctx.strokeStyle = winnerSlot ? "rgba(251, 191, 36, 0.6)" : "rgba(139, 92, 246, 0.4)"
+    this.ctx.lineWidth = 1.5
+    this.roundRect(this.ctx, x, y, width, height, 10)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    this.ctx.save()
+    this.ctx.strokeStyle = "rgba(255, 255, 255, 0.15)"
+    this.ctx.beginPath()
+    this.ctx.moveTo(x + 8, y + height / 2)
+    this.ctx.lineTo(x + width - 8, y + height / 2)
+    this.ctx.stroke()
+    this.ctx.restore()
+
+    const fontSize = Math.max(Math.min(14, width * 0.08), 10)
+
+    this.ctx.save()
+    this.ctx.textAlign = "left"
+    this.ctx.font = `${winnerSlot === "p1" ? "bold " : ""}${fontSize}px Inter`
+    this.ctx.fillStyle = winnerSlot === "p1" ? "#FBBF24" : "#E5E7EB"
+    this.ctx.fillText(this.truncateText(nameA, width - 16, fontSize), x + 10, y + height / 2 - 6)
+
+    this.ctx.font = `${winnerSlot === "p2" ? "bold " : ""}${fontSize}px Inter`
+    this.ctx.fillStyle = winnerSlot === "p2" ? "#FBBF24" : "#E5E7EB"
+    this.ctx.fillText(this.truncateText(nameB, width - 16, fontSize), x + 10, y + height / 2 + fontSize + 4)
+    this.ctx.restore()
+  }
+
+  drawBracketChampion(centerX, centerY, name) {
+    const width = 340
+    const height = 60
+    const x = centerX - width / 2
+    const y = centerY - height / 2
+
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0, 0, 0, 0.3)"
+    this.ctx.shadowBlur = 15
+    const gradient = this.ctx.createLinearGradient(x, y, x + width, y + height)
+    gradient.addColorStop(0, "#F59E0B")
+    gradient.addColorStop(1, "#DC2626")
+    this.ctx.fillStyle = gradient
+    this.roundRect(this.ctx, x, y, width, height, 30)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    this.ctx.save()
+    this.ctx.fillStyle = "#FFFFFF"
+    this.ctx.font = "bold 20px Inter"
+    this.ctx.textAlign = "center"
+    this.ctx.fillText(
+      name ? `🏆 Campeón: ${this.truncateText(name, width - 40, 20)}` : "🏆 Campeón por definir",
+      centerX,
+      centerY + 7,
+    )
+    this.ctx.restore()
+  }
+
+  truncateText(text, maxWidth, fontSize) {
+    this.ctx.font = `${fontSize}px Inter`
+    if (this.ctx.measureText(text).width <= maxWidth) return text
+
+    let truncated = text
+    while (truncated.length > 1 && this.ctx.measureText(truncated + "…").width > maxWidth) {
+      truncated = truncated.slice(0, -1)
+    }
+    return truncated + "…"
+  }
+
+  // Métodos auxiliares
+  getAspectRatio(aspectString) {
+    const [width, height] = aspectString.split(":").map(Number)
+    return width / height
+  }
+
+  getTorneoData() {
+    return {
+      artista: document.getElementById("torneo-artista").value,
+      posicion: document.getElementById("torneo-posicion").value,
+      total: document.getElementById("torneo-total").value,
+      impacto: document.getElementById("torneo-impacto").value,
+      ambientacion: document.getElementById("torneo-ambientacion").value,
+      originalidad: document.getElementById("torneo-originalidad").value,
+      coloreo: document.getElementById("torneo-coloreo").value,
+      dificultad: document.getElementById("torneo-dificultad").value,
+      dinamismo: document.getElementById("torneo-dinamismo").value,
+      rol: document.getElementById("torneo-rol").value,
+      especialidad: document.getElementById("torneo-especialidad").value,
+      aspecto: document.getElementById("torneo-aspecto").value,
+    }
+  }
+
+  getPublicacionData() {
+    return {
+      artista: document.getElementById("publicacion-artista").value,
+      rol: document.getElementById("publicacion-rol").value,
+      especialidad: document.getElementById("publicacion-especialidad").value,
+    }
+  }
+
+  getEntrevistaData() {
+    return {
+      nombre: document.getElementById("entrevista-artista").value,
+      rol: document.getElementById("entrevista-rol").value,
+      especialidad: document.getElementById("entrevista-especialidad").value,
+      descripcion: document.getElementById("entrevista-descripcion").value,
+    }
+  }
+
+  getQAData() {
+    const qaData = []
+    document.querySelectorAll(".qa-pair").forEach((pair) => {
+      const pregunta = pair.querySelector(".entrevista-pregunta").value
+      const respuesta = pair.querySelector(".entrevista-respuesta").value
+      qaData.push({ pregunta, respuesta })
+    })
+
+    return qaData
+  }
+
+  getRoleBadge(rol) {
+    const badges = {
+      founder: { text: "Fundador", color: "#fbbf24", icon: "👑" },
+      admin: { text: "Admin", color: "#8b5cf6", icon: "⭐" },
+      member: { text: "Miembro", color: "#3b82f6", icon: "👤" },
+    }
+    return badges[rol] || badges.member
+  }
+
+  getPositionStyle(position) {
+    const getColorForPosition = (pos) => {
+      const posNum = Number.parseInt(pos.replace(/\D/g, ""))
+
+      if (posNum <= 3) {
+        if (posNum === 1)
+          return {
+            gradientStart: "#FFD700",
+            gradientEnd: "#FFA500",
+            textColor: "#8B4513",
+            hasBorder: true,
+            borderColor: "#FFD700",
+            hasShadow: true,
+            shadowColor: "rgba(255, 215, 0, 0.5)",
+          }
+        if (posNum === 2)
+          return {
+            gradientStart: "#C0C0C0",
+            gradientEnd: "#A8A8A8",
+            textColor: "#2F4F4F",
+            hasBorder: true,
+            borderColor: "#C0C0C0",
+            hasShadow: true,
+            shadowColor: "rgba(192, 192, 192, 0.5)",
+          }
+        if (posNum === 3)
+          return {
+            gradientStart: "#CD7F32",
+            gradientEnd: "#B87333",
+            textColor: "#FFFFFF",
+            hasBorder: true,
+            borderColor: "#CD7F32",
+            hasShadow: true,
+            shadowColor: "rgba(205, 127, 50, 0.5)",
+          }
+      } else if (posNum <= 10) {
+        const ratio = (posNum - 4) / 6
+        return {
+          gradientStart: `hsl(${270 - ratio * 30}, 70%, 60%)`,
+          gradientEnd: `hsl(${270 - ratio * 30}, 70%, 45%)`,
+          textColor: "#FFFFFF",
+        }
+      } else if (posNum <= 20) {
+        const ratio = (posNum - 11) / 9
+        return {
+          gradientStart: `hsl(${240 - ratio * 60}, 70%, 55%)`,
+          gradientEnd: `hsl(${240 - ratio * 60}, 70%, 40%)`,
+          textColor: "#FFFFFF",
+        }
+      } else if (posNum <= 30) {
+        const ratio = (posNum - 21) / 9
+        return {
+          gradientStart: `hsl(${120 + ratio * 60}, 70%, 50%)`,
+          gradientEnd: `hsl(${120 + ratio * 60}, 70%, 35%)`,
+          textColor: "#FFFFFF",
+        }
+      } else {
+        const ratio = (posNum - 31) / 9
+        return {
+          gradientStart: `hsl(${30 - ratio * 15}, 70%, 55%)`,
+          gradientEnd: `hsl(${30 - ratio * 15}, 70%, 40%)`,
+          textColor: "#FFFFFF",
+        }
+      }
+    }
+
+    const styles = {
+      "1er": {
+        icon: "🥇",
+        text: "PRIMER LUGAR",
+        fontSize: 18,
+        ...getColorForPosition("1er"),
+      },
+      "2do": {
+        icon: "🥈",
+        text: "SEGUNDO LUGAR",
+        fontSize: 17,
+        ...getColorForPosition("2do"),
+      },
+      "3er": {
+        icon: "🥉",
+        text: "TERCER LUGAR",
+        fontSize: 17,
+        ...getColorForPosition("3er"),
+      },
+    }
+
+    const posNum = Number.parseInt(position.replace(/\D/g, ""))
+    if (posNum >= 4 && posNum <= 40 && !styles[position]) {
+      const colors = getColorForPosition(position)
+      return {
+        icon: posNum <= 10 ? "🏅" : "",
+        text: position.toUpperCase().replace(/(\d+)/, "$1°") + " LUGAR",
+        fontSize: posNum <= 10 ? 17 : 16,
+        gradientStart: colors.gradientStart,
+        gradientEnd: colors.gradientEnd,
+        textColor: colors.textColor,
+        hasBorder: false,
+        hasShadow: false,
+      }
+    }
+
+    return (
+      styles[position] || {
+        icon: "",
+        text: position.toUpperCase() + " LUGAR",
+        gradientStart: "#6B7280",
+        gradientEnd: "#4B5563",
+        textColor: "#FFFFFF",
+        fontSize: 16,
+        hasBorder: false,
+        hasShadow: false,
+      }
+    )
+  }
+
+  calculateTextHeight(text, maxWidth, fontSize) {
+    this.ctx.font = `${fontSize}px Inter`
+    const words = text.split(" ")
+    let line = ""
+    let lineCount = 1
+
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + " "
+      const metrics = this.ctx.measureText(testLine)
+      const testWidth = metrics.width
+
+      if (testWidth > maxWidth && n > 0) {
+        line = words[n] + " "
+        lineCount++
+      } else {
+        line = testLine
+      }
+    }
+
+    return lineCount * (fontSize + 8)
+  }
+
+  drawImageFit(img, x, y, width, height, transformKey = null) {
+    const imgRatio = img.width / img.height
+    const areaRatio = width / height
+
+    let baseWidth, baseHeight
+
+    if (imgRatio > areaRatio) {
+      baseHeight = height
+      baseWidth = height * imgRatio
+    } else {
+      baseWidth = width
+      baseHeight = width / imgRatio
+    }
+
+    const t = transformKey ? this.getTransform(transformKey) : { scale: 1, offsetX: 0, offsetY: 0 }
+    // El zoom nunca baja de 1 para no dejar huecos vacíos dentro del contenedor
+    const scale = Math.max(1, t.scale || 1)
+    const drawWidth = baseWidth * scale
+    const drawHeight = baseHeight * scale
+
+    // Máximo desplazamiento posible sin dejar espacios vacíos (la imagen siempre cubre el contenedor)
+    const maxOffsetX = Math.max(0, (drawWidth - width) / 2)
+    const maxOffsetY = Math.max(0, (drawHeight - height) / 2)
+    const offsetX = maxOffsetX ? Math.min(maxOffsetX, Math.max(-maxOffsetX, (t.offsetX || 0) * maxOffsetX)) : 0
+    const offsetY = maxOffsetY ? Math.min(maxOffsetY, Math.max(-maxOffsetY, (t.offsetY || 0) * maxOffsetY)) : 0
+
+    const drawX = x + (width - drawWidth) / 2 - offsetX
+    const drawY = y + (height - drawHeight) / 2 - offsetY
+
+    this.ctx.imageSmoothingEnabled = true
+    this.ctx.imageSmoothingQuality = "high"
+    this.ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
+  }
+
+  drawWrappedText(text, x, y, maxWidth, lineHeight, color = null) {
+    if (color) this.ctx.fillStyle = color
+
+    const words = text.split(" ")
+    let line = ""
+    let currentY = y
+
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + " "
+      const metrics = this.ctx.measureText(testLine)
+      const testWidth = metrics.width
+
+      if (testWidth > maxWidth && n > 0) {
+        this.ctx.fillText(line, x, currentY)
+        line = words[n] + " "
+        currentY += lineHeight
+      } else {
+        line = testLine
+      }
+    }
+    this.ctx.fillText(line, x, currentY)
+  }
+
+  roundRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath()
+    ctx.moveTo(x + radius, y)
+    ctx.lineTo(x + width - radius, y)
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius)
+    ctx.lineTo(x + width, y + height - radius)
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+    ctx.lineTo(x + radius, y + height)
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius)
+    ctx.lineTo(x, y + radius)
+    ctx.quadraticCurveTo(x, y, x + radius, y)
+    ctx.closePath()
+  }
+
+  downloadImage() {
+    this.finalCtx.clearRect(0, 0, this.finalCanvas.width, this.finalCanvas.height)
+
+    const originalCanvas = this.canvas
+    const originalCtx = this.ctx
+    this.canvas = this.finalCanvas
+    this.ctx = this.finalCtx
+
+    this.updatePreview()
+
+    const link = document.createElement("a")
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-")
+    const aspectRatio = document.getElementById("canvas-aspect").value.replace(":", "x")
+    link.download = `nexo-${this.currentTemplate}-${aspectRatio}-${timestamp}.png`
+    link.href = this.finalCanvas.toDataURL("image/png", 1.0)
+    link.click()
+
+    this.canvas = originalCanvas
+    this.ctx = originalCtx
+
+    this.showSuccessMessage("¡Imagen descargada exitosamente!")
+  }
+
+  showSuccessMessage(message) {
+    const messageEl = document.createElement("div")
+    messageEl.className = "success-message"
+    messageEl.textContent = message
+    document.body.appendChild(messageEl)
+
+    setTimeout(() => messageEl.classList.add("show"), 100)
+    setTimeout(() => {
+      messageEl.classList.remove("show")
+      setTimeout(() => document.body.removeChild(messageEl), 300)
+    }, 3000)
+  }
+
+  // ─────────────────────────────────────────────
+  //  COLLAGE
+  // ─────────────────────────────────────────────
+
+  addCollageImage() {
+    const id = this.collageNextId++
+    this.collageItems.push({ id, img: null, name: `Imagen ${id}` })
+    this.images.collage.push(null)
+    this.renderCollageList()
+    this.updatePreview()
+  }
+
+  removeCollageImage(id) {
+    const idx = this.collageItems.findIndex(it => it.id === id)
+    if (idx === -1) return
+    this.collageItems.splice(idx, 1)
+    this.images.collage.splice(idx, 1)
+    this.renderCollageList()
+    this.updatePreview()
+  }
+
+  renderCollageList() {
+    const list = document.getElementById("collage-imagenes-lista")
+    list.innerHTML = ""
+    this.collageItems.forEach((item, idx) => {
+      const div = document.createElement("div")
+      div.className = "collage-img-item"
+      div.dataset.id = item.id
+
+      const thumbHtml = item.img
+        ? `<img class="collage-img-thumb" src="${item.img.src}" alt="">`
+        : `<div class="collage-img-placeholder"><i class="fas fa-image"></i></div>`
+
+      div.innerHTML = `
+        ${thumbHtml}
+        <div class="collage-img-info">
+          <div class="collage-img-label">${item.name}</div>
+          <div class="collage-img-sublabel">${item.img ? 'Imagen cargada' : 'Sin imagen'}</div>
+        </div>
+        <div class="collage-img-actions">
+          <label style="width:30px;height:30px;border-radius:6px;background:var(--primary-color);color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.8rem;" title="Subir imagen">
+            <i class="fas fa-upload"></i>
+            <input type="file" accept="image/*" style="display:none;" data-idx="${idx}">
+          </label>
+          ${item.img ? `<button class="btn-adjust-collage" title="Ajustar" data-idx="${idx}" style="width:30px;height:30px;border-radius:6px;border:1px solid var(--primary-color);background:transparent;color:var(--primary-color);cursor:pointer;font-size:0.8rem;"><i class="fas fa-crop-alt"></i></button>` : ''}
+          <button class="btn-remove-collage" title="Eliminar" data-id="${item.id}" style="width:30px;height:30px;border-radius:6px;border:none;background:#ef4444;color:white;cursor:pointer;font-size:0.8rem;"><i class="fas fa-trash"></i></button>
+        </div>
+      `
+      list.appendChild(div)
+
+      // File upload
+      div.querySelector('input[type="file"]').addEventListener("change", (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+        const i = parseInt(e.target.dataset.idx)
+        const reader = new FileReader()
+        reader.onload = (ev) => {
+          const img = new Image()
+          img.onload = () => {
+            this.collageItems[i].img = img
+            this.collageItems[i].name = file.name.replace(/\.[^.]+$/, '')
+            this.images.collage[i] = img
+            const key = `collage-${this.collageItems[i].id}`
+            this.imageTransforms[key] = { scale: 1, offsetX: 0, offsetY: 0 }
+            this.renderCollageList()
+            this.updatePreview()
+          }
+          img.src = ev.target.result
+        }
+        reader.readAsDataURL(file)
+      })
+
+      // Adjust button
+      const adjBtn = div.querySelector('.btn-adjust-collage')
+      if (adjBtn) {
+        adjBtn.addEventListener("click", () => {
+          const i = parseInt(adjBtn.dataset.idx)
+          const key = `collage-${this.collageItems[i].id}`
+          this.openImageAdjuster(key, this.collageItems[i].img)
+        })
+      }
+
+      // Remove button
+      div.querySelector('.btn-remove-collage').addEventListener("click", (e) => {
+        this.removeCollageImage(parseInt(e.currentTarget.dataset.id))
+      })
+    })
+  }
+
+  getCollageData() {
+    return {
+      titulo: document.getElementById("collage-titulo").value,
+      artista: document.getElementById("collage-artista").value,
+      rol: document.getElementById("collage-rol").value,
+      layout: document.getElementById("collage-layout").value,
+      gap: parseInt(document.getElementById("collage-gap").value),
+      radius: parseInt(document.getElementById("collage-radius").value),
+    }
+  }
+
+  renderCollageTemplate() {
+    const W = this.canvas.width
+    const H = this.canvas.height
+    const data = this.getCollageData()
+    const imgs = this.images.collage.filter(Boolean)
+    const totalItems = this.collageItems.length
+
+    // Background
+    this.drawArtisticElegantBackground()
+
+    const margin = Math.round(W * 0.04)
+    const gap = data.gap
+    const r = data.radius
+
+    // Header zone
+    const hasTitle = data.titulo.trim() !== "" || data.artista.trim() !== ""
+    const hasProfile = this.images.collagePerfil !== null
+    const headerH = hasTitle ? Math.round(H * 0.1) : 0
+    const footerH = Math.round(H * 0.055)
+
+    const gridX = margin
+    const gridY = margin + headerH
+    const gridW = W - margin * 2
+    const gridH = H - margin * 2 - headerH - footerH
+
+    // ── Header ──
+    if (hasTitle) {
+      this.ctx.save()
+      if (hasProfile) {
+        const ps = headerH * 0.7
+        const px = gridX
+        const py = margin + (headerH - ps) / 2
+        this.ctx.save()
+        this.ctx.beginPath()
+        this.ctx.arc(px + ps / 2, py + ps / 2, ps / 2, 0, Math.PI * 2)
+        this.ctx.clip()
+        this.drawImageFit(this.images.collagePerfil, px, py, ps, ps, "collagePerfil")
+        this.ctx.restore()
+
+        this.ctx.strokeStyle = "#8B5CF6"
+        this.ctx.lineWidth = 3
+        this.ctx.beginPath()
+        this.ctx.arc(px + ps / 2, py + ps / 2, ps / 2 + 2, 0, Math.PI * 2)
+        this.ctx.stroke()
+
+        const tx = px + ps + 14
+        if (data.artista) {
+          this.ctx.fillStyle = "#ffffff"
+          this.ctx.font = `bold ${Math.round(headerH * 0.36)}px Inter`
+          this.ctx.textAlign = "left"
+          this.ctx.fillText(data.artista, tx, margin + headerH * 0.45)
+        }
+        if (data.titulo) {
+          this.ctx.fillStyle = "#a78bfa"
+          this.ctx.font = `${Math.round(headerH * 0.28)}px Inter`
+          this.ctx.fillText(data.titulo, tx, margin + headerH * 0.76)
+        }
+      } else {
+        if (data.titulo) {
+          this.ctx.fillStyle = "#ffffff"
+          this.ctx.font = `bold ${Math.round(headerH * 0.4)}px Inter`
+          this.ctx.textAlign = "left"
+          this.ctx.fillText(data.titulo, gridX, margin + headerH * 0.6)
+        }
+        if (data.artista) {
+          this.ctx.fillStyle = "#a78bfa"
+          this.ctx.font = `${Math.round(headerH * 0.3)}px Inter`
+          this.ctx.textAlign = "left"
+          this.ctx.fillText("por " + data.artista, gridX, margin + headerH * 0.92)
+        }
+      }
+      this.ctx.restore()
+    }
+
+    // ── Grid de imágenes ──
+    if (totalItems === 0) {
+      this.ctx.save()
+      this.ctx.fillStyle = "rgba(139,92,246,0.15)"
+      this.roundRect(this.ctx, gridX, gridY, gridW, gridH, 20)
+      this.ctx.fill()
+      this.ctx.fillStyle = "#9ca3af"
+      this.ctx.font = `bold ${Math.round(W * 0.025)}px Inter`
+      this.ctx.textAlign = "center"
+      this.ctx.fillText("Agrega imágenes al collage →", gridX + gridW / 2, gridY + gridH / 2)
+      this.ctx.restore()
+    } else {
+      const cells = this.computeCollageCells(data.layout, totalItems, gridX, gridY, gridW, gridH, gap)
+      cells.forEach((cell, idx) => {
+        this.drawCollageCell(cell, idx, r)
+      })
+    }
+
+    // ── Footer / Logo ──
+    this.drawModernLogo(margin, H - margin - 5)
+
+    // Badge de rol si hay artista
+    if (data.artista) {
+      const badge = this.getRoleBadge(data.rol)
+      const bx = W - margin - 10
+      const by = H - margin - 10
+      this.ctx.save()
+      this.ctx.font = `bold ${Math.round(W * 0.018)}px Inter`
+      this.ctx.textAlign = "right"
+      this.ctx.fillStyle = badge.color
+      this.ctx.fillText(`${badge.icon} ${badge.text}`, bx, by)
+      this.ctx.restore()
+    }
+  }
+
+  computeCollageCells(layout, n, x, y, w, h, gap) {
+    const cells = []
+
+    if (layout === "grid") {
+      // Cuadrícula uniforme
+      const cols = Math.ceil(Math.sqrt(n))
+      const rows = Math.ceil(n / cols)
+      const cw = (w - gap * (cols - 1)) / cols
+      const ch = (h - gap * (rows - 1)) / rows
+      for (let i = 0; i < n; i++) {
+        const col = i % cols
+        const row = Math.floor(i / cols)
+        cells.push({ x: x + col * (cw + gap), y: y + row * (ch + gap), w: cw, h: ch })
+      }
+    } else if (layout === "masonry") {
+      // Mosaico: alterna tamaños grandes y pequeños
+      if (n === 1) {
+        cells.push({ x, y, w, h })
+      } else if (n === 2) {
+        const hw = (w - gap) / 2
+        cells.push({ x, y, w: hw, h })
+        cells.push({ x: x + hw + gap, y, w: hw, h })
+      } else if (n === 3) {
+        const hh = (h - gap) / 2
+        const hw = (w - gap) / 2
+        cells.push({ x, y, w: hw, h })
+        cells.push({ x: x + hw + gap, y, w: hw, h: hh })
+        cells.push({ x: x + hw + gap, y: y + hh + gap, w: hw, h: hh })
+      } else if (n === 4) {
+        const hh = (h - gap) / 2
+        const hw = (w - gap) / 2
+        // Big left
+        cells.push({ x, y, w: hw, h: hh * 1.3 })
+        cells.push({ x: x + hw + gap, y, w: hw, h: hh })
+        cells.push({ x: x + hw + gap, y: y + hh + gap, w: hw, h: hh * 0.7 + gap * 0.3 })
+        const rem = h - hh * 1.3 - gap
+        cells.push({ x, y: y + hh * 1.3 + gap, w: hw, h: rem })
+      } else {
+        // Fallback a grid para 5+
+        return this.computeCollageCells("grid", n, x, y, w, h, gap)
+      }
+    } else if (layout === "featured") {
+      // Primera imagen grande, resto en columna o fila lateral
+      if (n === 1) {
+        cells.push({ x, y, w, h })
+      } else {
+        const sideW = w * 0.33
+        const mainW = w - sideW - gap
+        cells.push({ x, y, w: mainW, h })
+        const sideH = (h - gap * (n - 2)) / (n - 1)
+        for (let i = 1; i < n; i++) {
+          cells.push({ x: x + mainW + gap, y: y + (i - 1) * (sideH + gap), w: sideW, h: sideH })
+        }
+      }
+    }
+
+    return cells
+  }
+
+  drawCollageCell(cell, idx, r) {
+    const item = this.collageItems[idx]
+    const img = item ? item.img : null
+    const key = item ? `collage-${item.id}` : null
+
+    // Marco sutil
+    this.ctx.save()
+    this.ctx.shadowColor = "rgba(0,0,0,0.25)"
+    this.ctx.shadowBlur = 12
+    this.ctx.shadowOffsetY = 6
+    this.ctx.fillStyle = this.isDarkMode ? "#1f2937" : "#ffffff"
+    this.roundRect(this.ctx, cell.x, cell.y, cell.w, cell.h, r)
+    this.ctx.fill()
+    this.ctx.restore()
+
+    // Imagen
+    const pad = r > 0 ? Math.min(6, r / 2) : 0
+    const ix = cell.x + pad, iy = cell.y + pad
+    const iw = cell.w - pad * 2, ih = cell.h - pad * 2
+    const clipR = Math.max(0, r - pad)
+
+    this.ctx.save()
+    this.roundRect(this.ctx, ix, iy, iw, ih, clipR)
+    this.ctx.clip()
+
+    if (img) {
+      this.drawImageFit(img, ix, iy, iw, ih, key)
+    } else {
+      this.ctx.fillStyle = this.isDarkMode ? "rgba(75,85,99,0.4)" : "rgba(229,231,235,0.6)"
+      this.ctx.fillRect(ix, iy, iw, ih)
+      this.ctx.fillStyle = this.isDarkMode ? "#9ca3af" : "#6b7280"
+      this.ctx.font = `${Math.min(32, iw * 0.12)}px Inter`
+      this.ctx.textAlign = "center"
+      this.ctx.fillText(`🖼️ ${idx + 1}`, ix + iw / 2, iy + ih / 2 + 8)
+    }
+    this.ctx.restore()
+
+    // Borde morado sutil
+    this.ctx.save()
+    this.ctx.strokeStyle = this.isDarkMode ? "rgba(139,92,246,0.3)" : "rgba(124,58,237,0.2)"
+    this.ctx.lineWidth = 1.5
+    this.roundRect(this.ctx, cell.x, cell.y, cell.w, cell.h, r)
+    this.ctx.stroke()
+    this.ctx.restore()
+  }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener("DOMContentLoaded", () => {
+  window.prTemplatesApp = new PlantillasRedes()
+})
+
+})();
+  </script>
+  <!-- ===================== /PLANTILLAS PARA REDES ===================== -->
 </div>
 <!-- ===================== /MENÚ SECRETO ===================== -->
 
