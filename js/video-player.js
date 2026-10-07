@@ -1,0 +1,1 @@
+/* Floating video player is initialized by the shared runtime. */
