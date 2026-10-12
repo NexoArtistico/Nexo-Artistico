@@ -403,6 +403,8 @@ const COS=[
  A("acc-corona","cabeza","Corona",["Y....YY....Y","YY..YYYY..YY","YYYYYYYYYYYY","YyYYRYYBYYyY","yyyyyyyyyyyy"],2),
  A("acc-estrella","cabeza","Estrella",[".....YY.....","....YYYY....","YYYYYYYYYYYY",".YYYYYYYYYY.","..YYYYYYYY..","..YYY..YYY..",".YY......YY."],2),
  A("acc-aureola","cabeza","Aureola",["...YYYYYY...","..Y......Y..","...YYYYYY..."],3),
+ /* OCULTO (h:1): no aparece en el vestidor hasta que se desbloquea con COSM_EXCL */
+ Object.assign(A("acc-cuernos","cabeza","Cuernos Infernales",["K..........K","KK........KK","KK........KK",".KK......KK.",".KS......SK.","..KKKKKKKK.."],3,1.15),{h:1}),
  A("acc-gafas","rostro","Gafas de sol",["KKKKKKKKKK","KbbbKKbbbK","KbbbKKbbbK"]),
  A("acc-antiparras","rostro","Antiparras",["YYYYYYYYYY","YTTTYYTTTY","YTTTYYTTTY","yYYYyyYYYy"]),
  A("acc-bigote","rostro","Bigote",["nnn......nnn","nnnnnnnnnnnn",".nnnnnnnnnn."]),
@@ -691,8 +693,8 @@ function drawV(){
   const q={...p,cos:vDraft},cur=eq(vDraft);
   $("vph").innerHTML=av(q)+acc(q);$("vnm").textContent=p.name;$("vsub").textContent=p.id+" · "+vDraft.length+" cosméticos";
   $("vtrack").innerHTML=`<div class="horse${hcls(q)}" style="${hst(q).slice(1)}"><i class="dust"></i><div class="rider${fc(q)}"${fs(q)}>${av(q)}</div>${acc(q)}${horseSVG(hcol(q))}</div>`;
-  $("vtabs").innerHTML=Object.keys(SLN).map(s=>{const l=COS.filter(c=>c.s===s);return`<button type="button" class="tab${s===vTab?" on":""}" data-tab="${s}">${SLN[s]}<small>${l.filter(c=>owned(c,p)).length}/${l.length}</small></button>`}).join("");
-  $("vlist").innerHTML=`<button type="button" class="it${cur[vTab]?"":" on"}" data-cid="-${vTab}"><span class="ic">∅</span><span class="nn">Ninguno</span><em>—</em></button>`+COS.filter(c=>c.s===vTab).map(c=>{const lock=!owned(c,p);return`<button type="button" class="it r${c.x||0}${cur[vTab]===c?" on":""}${lock?" lock":""}" data-cid="${c.id}"${lock?" disabled":""}><span class="ic">${icon(c)}</span><span class="nn">${c.n}</span><em>${lock?"Bloqueado · ":""}${RAR[c.x||0]}</em></button>`}).join("");
+  $("vtabs").innerHTML=Object.keys(SLN).map(s=>{const l=COS.filter(c=>c.s===s&&(!c.h||owned(c,p)));return`<button type="button" class="tab${s===vTab?" on":""}" data-tab="${s}">${SLN[s]}<small>${l.filter(c=>owned(c,p)).length}/${l.length}</small></button>`}).join("");
+  $("vlist").innerHTML=`<button type="button" class="it${cur[vTab]?"":" on"}" data-cid="-${vTab}"><span class="ic">∅</span><span class="nn">Ninguno</span><em>—</em></button>`+COS.filter(c=>c.s===vTab&&(!c.h||owned(c,p))).map(c=>{const lock=!owned(c,p);return`<button type="button" class="it r${c.x||0}${cur[vTab]===c?" on":""}${lock?" lock":""}" data-cid="${c.id}"${lock?" disabled":""}><span class="ic">${icon(c)}</span><span class="nn">${c.n}</span><em>${lock?"Bloqueado · ":""}${RAR[c.x||0]}</em></button>`}).join("");
   $("cosCode").value=vDraft.join("|");
 }
 const setSlot=(s,id)=>{vDraft=vDraft.filter(i=>CI[i]?.s!==s);if(id)vDraft.push(id)};
