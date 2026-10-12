@@ -1,155 +1,168 @@
-(function(){
-  "use strict";
-  var wrap = document.getElementById("gm-details");
-  if (!wrap || wrap.dataset.gmBound) return;
-  wrap.dataset.gmBound = "1";
+/* =====================================================================================
+   js/library.js — BIBLIOTECA: paginación por filas, búsqueda y filtro por categoría de las
+   secciones pinterest / videos / libros / recursos / software.
+   ===================================================================================== */
+"use strict";
 
-  var fileInput = document.getElementById("gm-file");
-  var drop = document.getElementById("gm-drop");
-  var dropText = document.getElementById("gm-drop-text");
-  var rowsInput = document.getElementById("gm-rows");
-  var colsInput = document.getElementById("gm-cols");
-  var colorInput = document.getElementById("gm-color");
-  var thicknessInput = document.getElementById("gm-thickness");
-  var thicknessVal = document.getElementById("gm-thickness-val");
-  var opacityInput = document.getElementById("gm-opacity");
-  var opacityVal = document.getElementById("gm-opacity-val");
-  var aspectSelect = document.getElementById("gm-aspect");
-  var fitSelect = document.getElementById("gm-fit");
-  var canvas = document.getElementById("gm-canvas");
-  var emptyNote = document.getElementById("gm-empty-note");
-  var downloadBtn = document.getElementById("gm-download");
-  var resetBtn = document.getElementById("gm-reset");
-  var ctx = canvas.getContext("2d");
+/* ================== [SYNC-FUNCIONALIDAD: TODOS LOS ESTILOS] ==================
+   PAGINACION POR FILAS + BUSQUEDA (Biblioteca): en vez de listar todos los
+   tableros/videos/libros/recursos/software de una sola vez (lista casi
+   interminable con cientos de items), cada seccion pagina por FILAS: se
+   mide cuantas columnas tiene el grid en el ancho de pantalla actual (los
+   mismos breakpoints que ya usa el CSS) y se multiplica por
+   LIB_ROWS_PER_PAGE[seccion] para saber cuantos items entran por pagina.
+   Asi la cantidad de "renglones" visibles es siempre la misma sin importar
+   el dispositivo (celular, tablet, escritorio). Cada seccion recuerda su
+   propia pagina y su propio texto de busqueda mientras se navega entre
+   pestañas de la Biblioteca (no se resetea al cambiar de pestaña).
+   Equivalente en Comic: mismo bloque LIB_* dentro de comic.html
+   (unica diferencia intencional: LIB_ROWS_PER_PAGE.videos vale 3 en Comic
+   en vez de 2, y libColumns() usa los breakpoints en px propios de Comic
+   en vez de los breakpoints sm/lg/xl de Tailwind). Cualquier cambio de
+   COMPORTAMIENTO (no de estilo visual) debe replicarse en ambos lugares. */
+var LIB_ROWS_PER_PAGE = { pinterest: 2, videos: 2, libros: 2, recursos: 2, software: 2 };
+var LIB_CONTAINER = { pinterest: "m-pinterest-grid", videos: "m-videos-grid", libros: "m-libros-list", recursos: "m-recursos-grid", software: "m-software-grid" };
+var LIB_EMPTY = { pinterest: "Sin tableros disponibles.", videos: "Sin videos disponibles.", libros: "Sin libros disponibles.", recursos: "Sin recursos disponibles.", software: "Sin software disponible." };
+var LIB_EMPTY_SEARCH = { pinterest: "No hay tableros que coincidan con tu b\u00fasqueda.", videos: "No hay videos que coincidan con tu b\u00fasqueda.", libros: "No hay libros que coincidan con tu b\u00fasqueda.", recursos: "No hay recursos que coincidan con tu b\u00fasqueda.", software: "No hay software que coincida con tu b\u00fasqueda." };
+var LIB_STATE = {
+  pinterest: { all: [], page: 1, q: "" },
+  videos: { all: [], page: 1, q: "", cat: "" },
+  libros: { all: [], page: 1, q: "" },
+  recursos: { all: [], page: 1, q: "" },
+  software: { all: [], page: 1, q: "", cat: "" }
+};
+var LIB_POST = {};
 
-  var currentImg = null;
-  var currentFileName = "cuadricula";
+/* Mismas anchuras de quiebre que las reglas sm:/lg:/xl: de Tailwind ya usadas
+   por #m-pinterest-grid, #m-videos-grid, #m-libros-list, #m-recursos-grid y
+   #m-software-grid (ver <style> arriba). */
+/* [FIX MÓVIL: CLÁSICO/NEON] Estos números tenían que ser un espejo exacto de las columnas
+   reales que fija el CSS (#m-pinterest-grid/#m-videos-grid/#m-libros-list/#m-software-grid,
+   más arriba, y las clases sm:/lg: de Tailwind para #m-recursos-grid) — pero estaban
+   desincronizados: por ejemplo en "videos" el CSS ya muestra 2 columnas en celular
+   (grid-template-columns:repeat(2,1fr) en la base, antes de min-width:640px), mientras esta
+   función asumía 1 columna. Eso hac��a que perPage (columnas × LIB_ROWS_PER_PAGE) se calculara
+   mal y las páginas no llenaran realmente 2 filas en celular. Ahora coincide exactamente con
+   el CSS real de cada sección. */
+function libColumns(section) {
+  var w = window.innerWidth;
+  if (section === "pinterest") { return w < 1024 ? 2 : 3; }
+  if (section === "libros") { return w < 640 ? 2 : w < 1024 ? 3 : 5; }
+  if (section === "videos") { return w < 640 ? 2 : w < 1024 ? 3 : 4; }
+  if (section === "software") { return w < 640 ? 2 : w < 1024 ? 3 : 5; }
+  return w < 640 ? 1 : w < 1024 ? 2 : 3; /* recursos (usa sm:grid-cols-2 lg:grid-cols-3 sin !important) */
+}
+function libMatches(section, item, q) {
+  if (!q) return true;
+  q = q.toLowerCase();
+  var fields;
+  if (section === "pinterest") fields = [item.titulo, item.descripcion];
+  else if (section === "videos") fields = [item.titulo, item.autor, item.categoria];
+  else if (section === "libros") fields = [item.titulo, item["autor(es)"], item.idioma];
+  else fields = [item.titulo, item.tipo, item.descripcion];
+  return fields.some(function (f) { return (f || "").toLowerCase().indexOf(q) !== -1; });
+}
+var LIB_CAT_FIELD = { videos: "categoria", software: "etiqueta" };
+function libMatchesCategory(section, item, cat) {
+  var field = LIB_CAT_FIELD[section];
+  if (!field || !cat) return true;
+  return (item[field] || "").trim() === cat;
+}
+function libPopulateCategoryFilter(section) {
+  var field = LIB_CAT_FIELD[section];
+  if (!field) return;
+  var select = document.getElementById("lib-cat-" + section);
+  if (!select) return;
+  var values = [];
+  LIB_STATE[section].all.forEach(function (it) {
+    var v = (it[field] || "").trim();
+    if (v && values.indexOf(v) === -1) values.push(v);
+  });
+  values.sort(function (a, b) { return a.localeCompare(b, "es"); });
+  var current = select.value;
+  select.innerHTML = '<option value="">' + (section === "software" ? "Todas las etiquetas" : "Todas las categor\u00edas") + '</option>' +
+    values.map(function (v) { return '<option value="' + esc(v) + '">' + esc(v) + '</option>'; }).join("");
+  if (values.indexOf(current) !== -1) select.value = current;
+}
 
-  function parseAspect(val, naturalW, naturalH){
-    if (val === "original") return naturalW / naturalH;
-    var parts = val.split("/");
-    return parseFloat(parts[0]) / parseFloat(parts[1]);
+function libCard(section, item) {
+  if (section === "pinterest") return pinCardHtml(item);
+  if (section === "videos") return videoCardHtml(item);
+  if (section === "libros") return libroCardHtml(item, LIB_LIBRO_ICON);
+  return resourceCardModern(item);
+}
+function libRenderSection(section) {
+  var state = LIB_STATE[section];
+  var containerId = LIB_CONTAINER[section];
+  var filtered = state.all.filter(function (it) { return libMatches(section, it, state.q) && libMatchesCategory(section, it, state.cat); });
+  var perPage = Math.max(1, libColumns(section) * LIB_ROWS_PER_PAGE[section]);
+  var totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  if (state.page > totalPages) state.page = totalPages;
+  if (state.page < 1) state.page = 1;
+  var start = (state.page - 1) * perPage;
+  var pageItems = filtered.slice(start, start + perPage);
+
+  if (!state.all.length) {
+    setHTML(containerId, '<div class="m-empty">' + LIB_EMPTY[section] + '</div>');
+  } else if (!filtered.length) {
+    setHTML(containerId, '<div class="m-empty">' + LIB_EMPTY_SEARCH[section] + '</div>');
+  } else {
+    setHTML(containerId, pageItems.map(function (it) { return libCard(section, it); }).join(""));
   }
-
-  function draw(){
-    if (!currentImg) return;
-    var naturalW = currentImg.naturalWidth || currentImg.width;
-    var naturalH = currentImg.naturalHeight || currentImg.height;
-    var aspect = parseAspect(aspectSelect.value, naturalW, naturalH);
-
-    var targetW, targetH;
-    var maxDim = Math.max(naturalW, naturalH, 1600);
-    if (aspect >= 1) { targetW = maxDim; targetH = Math.round(maxDim / aspect); }
-    else { targetH = maxDim; targetW = Math.round(maxDim * aspect); }
-
-    canvas.width = targetW;
-    canvas.height = targetH;
-    canvas.style.display = "block";
-    emptyNote.style.display = "none";
-
-    ctx.clearRect(0, 0, targetW, targetH);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, targetW, targetH);
-
-    var fit = fitSelect.value;
-    if (fit === "stretch") {
-      ctx.drawImage(currentImg, 0, 0, targetW, targetH);
-    } else {
-      var srcRatio = naturalW / naturalH;
-      var dstRatio = targetW / targetH;
-      var sx = 0, sy = 0, sw = naturalW, sh = naturalH;
-      if (fit === "cover") {
-        if (srcRatio > dstRatio) { sw = naturalH * dstRatio; sx = (naturalW - sw) / 2; }
-        else { sh = naturalW / dstRatio; sy = (naturalH - sh) / 2; }
-        ctx.drawImage(currentImg, sx, sy, sw, sh, 0, 0, targetW, targetH);
-      } else {
-        var dw, dh, dx, dy;
-        if (srcRatio > dstRatio) { dw = targetW; dh = targetW / srcRatio; }
-        else { dh = targetH; dw = targetH * srcRatio; }
-        dx = (targetW - dw) / 2; dy = (targetH - dh) / 2;
-        ctx.drawImage(currentImg, 0, 0, naturalW, naturalH, dx, dy, dw, dh);
-      }
-    }
-
-    var rows = Math.max(1, parseInt(rowsInput.value, 10) || 1);
-    var cols = Math.max(1, parseInt(colsInput.value, 10) || 1);
-    var thickness = Math.max(1, parseFloat(thicknessInput.value) || 1);
-    var opacity = Math.max(0.05, (parseFloat(opacityInput.value) || 80) / 100);
-    ctx.save();
-    ctx.globalAlpha = opacity;
-    ctx.strokeStyle = colorInput.value;
-    ctx.lineWidth = thickness;
-    ctx.beginPath();
-    for (var c = 1; c < cols; c++) {
-      var x = Math.round((targetW / cols) * c) + (thickness % 2 ? 0.5 : 0);
-      ctx.moveTo(x, 0); ctx.lineTo(x, targetH);
-    }
-    for (var r = 1; r < rows; r++) {
-      var y = Math.round((targetH / rows) * r) + (thickness % 2 ? 0.5 : 0);
-      ctx.moveTo(0, y); ctx.lineTo(targetW, y);
-    }
-    ctx.stroke();
-    ctx.strokeRect(thickness/2, thickness/2, targetW - thickness, targetH - thickness);
-    ctx.restore();
-
-    downloadBtn.disabled = false;
-    resetBtn.disabled = false;
-  }
-
-  function loadFile(file){
-    if (!file || file.type.indexOf("image/") !== 0) return;
-    currentFileName = (file.name || "cuadricula").replace(/\.[^.]+$/, "");
-    var url = URL.createObjectURL(file);
-    var img = new Image();
-    img.onload = function(){
-      currentImg = img;
-      dropText.textContent = "Imagen cargada: " + file.name + " — haz clic para cambiarla";
-      draw();
-      URL.revokeObjectURL(url);
-    };
-    img.onerror = function(){
-      dropText.textContent = "No se pudo cargar esa imagen. Prueba con otro archivo.";
-      URL.revokeObjectURL(url);
-    };
-    img.src = url;
-  }
-
-  fileInput.addEventListener("change", function(){
-    if (fileInput.files && fileInput.files[0]) loadFile(fileInput.files[0]);
-  });
-  ["dragover","dragenter"].forEach(function(evt){
-    drop.addEventListener(evt, function(e){ e.preventDefault(); drop.classList.add("gm-drag"); });
-  });
-  ["dragleave","drop"].forEach(function(evt){
-    drop.addEventListener(evt, function(e){ e.preventDefault(); drop.classList.remove("gm-drag"); });
-  });
-  drop.addEventListener("drop", function(e){
-    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
-  });
-
-  [rowsInput, colsInput, colorInput, thicknessInput, opacityInput, aspectSelect, fitSelect].forEach(function(el){
-    el.addEventListener("input", function(){
-      thicknessVal.textContent = thicknessInput.value;
-      opacityVal.textContent = opacityInput.value + "%";
-      draw();
+  if (LIB_POST[section]) LIB_POST[section]();
+  libUpdatePagerUI(section, totalPages);
+}
+function libUpdatePagerUI(section, totalPages) {
+  var state = LIB_STATE[section];
+  var bar = document.getElementById("lib-pager-" + section);
+  if (!bar) return;
+  bar.style.display = (state.all.length && totalPages > 1) ? "" : "none";
+  var info = bar.querySelector(".lib-page-info");
+  if (info) info.textContent = "P\u00e1gina " + state.page + " de " + totalPages;
+  var prev = bar.querySelector("[data-lib-prev]");
+  var next = bar.querySelector("[data-lib-next]");
+  if (prev) prev.disabled = state.page <= 1;
+  if (next) next.disabled = state.page >= totalPages;
+}
+function libScrollToTop(section) {
+  var el = document.getElementById(LIB_CONTAINER[section]);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+function libBindControls(section) {
+  var search = document.getElementById("lib-search-" + section);
+  if (search && !search.dataset.bound) {
+    search.dataset.bound = "1";
+    search.addEventListener("input", function () {
+      LIB_STATE[section].q = search.value;
+      LIB_STATE[section].page = 1;
+      libRenderSection(section);
     });
+  }
+  var catSelect = document.getElementById("lib-cat-" + section);
+  if (catSelect && !catSelect.dataset.bound) {
+    catSelect.dataset.bound = "1";
+    catSelect.addEventListener("change", function () {
+      LIB_STATE[section].cat = catSelect.value;
+      LIB_STATE[section].page = 1;
+      libRenderSection(section);
+    });
+  }
+  var bar = document.getElementById("lib-pager-" + section);
+  if (bar && !bar.dataset.bound) {
+    bar.dataset.bound = "1";
+    var prev = bar.querySelector("[data-lib-prev]");
+    var next = bar.querySelector("[data-lib-next]");
+    if (prev) prev.addEventListener("click", function () { LIB_STATE[section].page -= 1; libRenderSection(section); libScrollToTop(section); });
+    if (next) next.addEventListener("click", function () { LIB_STATE[section].page += 1; libRenderSection(section); libScrollToTop(section); });
+  }
+}
+function initLibPagination() {
+  Object.keys(LIB_STATE).forEach(libBindControls);
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { Object.keys(LIB_STATE).forEach(libRenderSection); }, 200);
   });
-
-  downloadBtn.addEventListener("click", function(){
-    if (!currentImg) return;
-    var link = document.createElement("a");
-    link.download = currentFileName + "-cuadricula.png";
-    link.href = canvas.toDataURL("image/png", 1.0);
-    link.click();
-  });
-
-  resetBtn.addEventListener("click", function(){
-    currentImg = null;
-    fileInput.value = "";
-    canvas.style.display = "none";
-    emptyNote.style.display = "block";
-    dropText.textContent = "Haz clic aquí o arrastra una imagen (JPG, PNG, WEBP, GIF, SVG, BMP...)";
-    downloadBtn.disabled = true;
-    resetBtn.disabled = true;
-  });
-})();
+}
+var LIB_LIBRO_ICON = "";
+LIB_POST.videos = function () { bindVideoTriggers(); };
