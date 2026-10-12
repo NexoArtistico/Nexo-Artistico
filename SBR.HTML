@@ -322,12 +322,48 @@ main,#game,#vest{max-width:1640px}
 .mhint{position:absolute;left:8px;bottom:8px;z-index:2;max-width:60%;padding:4px 8px;font:400 12px/1.3 'Special Elite',monospace;color:var(--cream);background:#150a04cc;border:2px solid var(--brass2);pointer-events:none;transition:opacity .6s}
 .mhint.off{opacity:0}
 #mapbox:fullscreen{display:flex;flex-direction:column;width:100vw;height:100vh;background:#000}
-#mapbox:fullscreen .mapwrap{flex:1;min-height:0;aspect-ratio:auto;display:grid;place-items:center;border:0}
-#mapbox:fullscreen canvas{width:min(100vw,calc((100vh - 56px)*16/9));height:auto;aspect-ratio:16/9}
+#mapbox:fullscreen .mapwrap{flex:1;min-height:0;height:auto;aspect-ratio:auto;border:0}
+#mapbox:fullscreen canvas{width:100%;height:100%}
 #mapbox:-webkit-full-screen{display:flex;flex-direction:column;width:100vw;height:100vh;background:#000}
-#mapbox:-webkit-full-screen .mapwrap{flex:1;min-height:0;aspect-ratio:auto;display:grid;place-items:center;border:0}
-#mapbox:-webkit-full-screen canvas{width:min(100vw,calc((100vh - 56px)*16/9));height:auto;aspect-ratio:16/9}
+#mapbox:-webkit-full-screen .mapwrap{flex:1;min-height:0;height:auto;aspect-ratio:auto;border:0}
+#mapbox:-webkit-full-screen canvas{width:100%;height:100%}
 @media(max-width:560px){.mctl button{min-width:30px;height:30px;font-size:15px;border-width:2px}.mhint{display:none}}
+
+/* ===== v7: móvil / responsive completo ===== */
+.card,.side>*,main>*{min-width:0}
+.msg{overflow-wrap:anywhere}
+@media(pointer:coarse){
+.mctl button{min-width:40px;height:40px}
+.tab,.it,.btn,.tools button,dialog button{min-height:44px}
+select,input{font-size:16px}
+}
+@media(max-width:700px){
+.mapwrap{aspect-ratio:auto;height:min(64vh,118vw);height:min(64dvh,118vw)}
+.mctl{gap:5px;padding:6px}
+.mctl button{flex:1 1 0;min-width:0;max-width:52px}
+td:nth-child(2){max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td.p{white-space:nowrap}
+.tw{max-height:320px}
+.sky{padding:10px}
+.booth{padding:8px}
+.podium{padding:0 8px}
+.steps{gap:4px}
+.gbody select{max-width:none}
+.vtrack{height:130px}
+.vtrack .horse{top:66px}
+}
+@media(max-width:420px){
+.kick{font-size:11px;letter-spacing:.03em}
+.sub{font-size:13px}
+.hero{padding-bottom:90px}
+.ch h2{font-size:16px}
+.mctl button{font-size:14px}
+.tools .f.s{flex-basis:100%}
+.tools .f:not(.s){flex:1 1 45%}
+}
+@media(max-height:500px) and (orientation:landscape){
+.mapwrap{aspect-ratio:auto;height:calc(100vh - 60px);height:calc(100dvh - 60px)}
+}
 </style>
 </head>
 <body>
@@ -760,7 +796,7 @@ $("clr").addEventListener("click",()=>{$("q").value="";$("minp").value="";$("sor
 /* ===== Pista interactiva (lienzo 3840x2160 = 4K, 16:9) ===== */
 const MAP=(()=>{
 const cv=$("map"),c=cv.getContext("2d"),wrap=$("mapwrap"),box=$("mapbox");
-const MW=3840,MH=2160,LH=480,OY=90,X0=420,HW=288,HH=216,PHS=190,MAXS=60,PPP=40,TLMIN=12000,SVMIN=.6;
+let MW=3840,MH=2160;const LH=480,OY=90,X0=420,HW=288,HH=216,PHS=190,MAXS=60,PPP=40,TLMIN=12000,SVMIN=.6;
 let TL=TLMIN,WW=X0+TL+HW/2+376,FIN=X0+TL+HW/2;
 const START=X0-HW/2,GUT=START-14;
 const layout=()=>{TL=Math.max(TLMIN,Math.round(leader*PPP));FIN=X0+TL+HW/2;WW=FIN+376};
@@ -1098,10 +1134,17 @@ function act(a){
 }
 $("mctl").addEventListener("click",e=>{const b=e.target.closest("[data-z]");if(b)act(b.dataset.z)});
 if(!(box.requestFullscreen||box.webkitRequestFullscreen))$("mfs").hidden=true;
-new ResizeObserver(()=>{syncUI();clampV(T);clampV(V);req()}).observe(wrap);
-document.addEventListener("fullscreenchange",()=>{syncUI();req()});
+/* El lienzo se adapta al contenedor: 4K en pantallas grandes, 1920 de ancho en móviles, y alto según la proporción real */
+function fit(){
+  const r=wrap.getBoundingClientRect(),w=r.width,h=r.height;if(!w||!h)return;
+  const nw=w<=700?1920:3840,nh=Math.max(540,Math.round(nw*h/w));
+  if(nw!==MW||nh!==MH){MW=nw;MH=nh;cv.width=MW;cv.height=MH}
+  syncUI();clampV(T);clampV(V);req();
+}
+new ResizeObserver(fit).observe(wrap);
+document.addEventListener("fullscreenchange",()=>{fit()});
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(req);
-syncUI();draw(0);
+fit();draw(0);
 return{set};
 })();
 
