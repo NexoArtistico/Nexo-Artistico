@@ -6,22 +6,38 @@
    ===================================================================================== */
 "use strict";
 
-/* ---------- CSV endpoints (same source as estilo comic) ---------- */
+/* ---------- Fuentes de datos ----------
+   Modo Supabase (por defecto cuando js/supabase-config.js tiene url + anonKey): cada clave de URLS es el
+   nombre de la tabla. Modo respaldo (config vacía): se leen los CSV publicados de Google Sheets.
+   loadCSV(clave, callback) conserva EXACTAMENTE la misma firma y entrega objetos con las mismas claves
+   de texto que producía el CSV ("TRUE"/"FALSE", "autor(es)", "nueva_pestaña", "Fecha_final"), por lo que
+   components.js, library.js y main.js no necesitan cambios. */
 var BASE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSSv19AZ9XOhQxN7-Cyrn_m_6f5dVNnGHT4SGpL5ajb_iI9MW1HDbSwhEeJ9shXvnambJpPeQXT3qoz/pub?single=true&output=csv&gid=";
-var URLS = {
-  config: BASE + "0",
-  obras: BASE + "1890725432",
-  proyectos: BASE + "1986139415",
-  libros: BASE + "417600961",
-  recursos: BASE + "967089863",
-  videos: BASE + "1670672524",
-  pinterest: BASE + "466486359",
-  playlists: BASE + "1612784649",
-  playlistVideos: BASE + "757598810",
-  sobre: BASE + "238541182",
-  testimonios: BASE + "1975837966",
-  equipo: BASE + "1365536327"
+var CSV_FALLBACK = {
+  configuracion: BASE + "0", obras: BASE + "1890725432", proyectos: BASE + "1986139415",
+  libros: BASE + "417600961", recursos: BASE + "967089863", videos: BASE + "1670672524",
+  pines: BASE + "466486359", playlists: BASE + "1612784649", playlist_videos: BASE + "757598810",
+  sobre: BASE + "238541182", testimonios: BASE + "1975837966", equipo: BASE + "1365536327"
 };
+var SB_CFG = window.NEXO_SUPABASE || {};
+var SB_READY = !!(SB_CFG.url && SB_CFG.anonKey && window.supabase);
+var SB = SB_READY ? window.supabase.createClient(SB_CFG.url, SB_CFG.anonKey) : null;
+var URLS = {
+  config: "configuracion", obras: "obras", proyectos: "proyectos", libros: "libros", recursos: "recursos",
+  videos: "videos", pinterest: "pines", playlists: "playlists", playlistVideos: "playlist_videos",
+  sobre: "sobre", testimonios: "testimonios", equipo: "equipo"
+};
+/* columna Postgres -> encabezado que esperan los renders (solo donde difieren) */
+var LEGACY_KEYS = { libros: { autores: "autor(es)", nueva_pestana: "nueva_pestaña" }, proyectos: { fecha_final: "Fecha_final" } };
+function legacyRow(table, row) {
+  var map = LEGACY_KEYS[table] || {}, out = {};
+  Object.keys(row).forEach(function (k) {
+    if (k === "created_at") return;
+    var v = row[k];
+    out[map[k] || k] = v === null || v === undefined ? "" : (typeof v === "boolean" ? (v ? "TRUE" : "FALSE") : String(v));
+  });
+  return out;
+}
 
 /* ---------- generic helpers ---------- */
 function esc(v) {
@@ -75,23 +91,35 @@ function fetchCSV(url) {
    fresh copy loads in the background, then re-renders when it arrives.
    Keeps the page feeling instant on repeat visits without ever showing
    stale data forever. */
-function loadCSV(url, onData) {
-  var cacheKey = "nexo-csv::" + url;
+function loadCSV(key, onData) {
+  var useSB = SB_READY;
+  var cacheKey = (useSB ? "nexo-sb::" : "nexo-csv::") + key;
   var hadCache = false;
   try {
     var cached = localStorage.getItem(cacheKey);
-    if (cached) { hadCache = true; onData(csvToObjects(cached)); }
+    if (cached) { hadCache = true; onData(useSB ? JSON.parse(cached) : csvToObjects(cached)); }
   } catch (e) {}
-  return fetch(url).then(function (res) {
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    return res.text();
-  }).then(function (text) {
-    var rows = csvToObjects(text);
-    try { localStorage.setItem(cacheKey, text); } catch (e) {}
-    onData(rows);
-    return rows;
-  }).catch(function (err) {
-    if (hadCache) { console.log("[nexo-modern] refresh failed, keeping cached data", url, err); return null; }
+  var request;
+  if (useSB) {
+    var qb = SB.from(key).select("*");
+    if (key !== "configuracion") qb = qb.order("orden", { ascending: true, nullsFirst: false }).order("id", { ascending: true });
+    request = qb.then(function (res) {
+      if (res.error) throw res.error;
+      var rows = (res.data || []).map(function (r) { return legacyRow(key, r); });
+      try { localStorage.setItem(cacheKey, JSON.stringify(rows)); } catch (e) {}
+      return rows;
+    });
+  } else {
+    request = fetch(CSV_FALLBACK[key] || key).then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.text();
+    }).then(function (text) {
+      try { localStorage.setItem(cacheKey, text); } catch (e) {}
+      return csvToObjects(text);
+    });
+  }
+  return request.then(function (rows) { onData(rows); return rows; }).catch(function (err) {
+    if (hadCache) { console.log("[nexo] refresh failed, keeping cached data", key, err); return null; }
     throw err;
   });
 }
