@@ -18,28 +18,30 @@ function socialLink(key, url, cls) {
 }
 
 /* ---------- config ---------- */
+/* Guarda el valor original (el que trae index.html) de cada elemento la primera vez y lo restaura
+   cuando la clave queda vacía; así la vista previa del admin refleja también los borrados. */
+function cfgSet(id, val, apply, restore) {
+  var el = document.getElementById(id); if (!el) return;
+  if (!el.__nxDef) el.__nxDef = { t: el.innerHTML, href: el.getAttribute("href"), bg: el.style.backgroundImage, cls: el.classList.contains("has-image") };
+  if (val) apply(el, val); else restore(el, el.__nxDef);
+}
 function applyConfig(rows) {
   var cfg = {};
   rows.forEach(function (r) { if (r.clave) cfg[r.clave.trim()] = r.valor; });
+  var txt = function (el, v) { el.textContent = v; }, back = function (el, d) { el.innerHTML = d.t; };
+  var stat = function (el, v) { el.innerHTML = esc(v) + "+"; };
 
-  if (cfg.nombre_sitio) {
-    document.title = cfg.nombre_sitio + " — Donde el Arte nos Conecta";
-    var bn = document.getElementById("m-brand-name"); if (bn) bn.textContent = cfg.nombre_sitio;
-    var fn = document.getElementById("m-foot-name"); if (fn) fn.textContent = cfg.nombre_sitio;
-  }
-  if (cfg.descripcion) {
-    var hd = document.getElementById("m-hero-desc"); if (hd) hd.textContent = cfg.descripcion;
-  }
-  if (cfg.portada) {
-    var hc = document.getElementById("m-hero-cover");
-    if (hc) { hc.style.backgroundImage = "url('" + cfg.portada + "')"; hc.classList.add("has-image"); }
-  }
-  if (cfg.whatsapp) {
-    var w1 = document.getElementById("m-btn-whatsapp"); if (w1) w1.href = cfg.whatsapp;
-  }
-  if (cfg.miembros_activos) setHTML("m-stat-miembros", esc(cfg.miembros_activos) + "+");
-  if (cfg.recursos_compartidos) setHTML("m-stat-recursos", esc(cfg.recursos_compartidos) + "+");
-  if (cfg.proyectos_realizados) setHTML("m-stat-proyectos", esc(cfg.proyectos_realizados) + "+");
+  if (!document.__nxTitle) document.__nxTitle = document.title;
+  document.title = cfg.nombre_sitio ? cfg.nombre_sitio + " — Donde el Arte nos Conecta" : document.__nxTitle;
+  cfgSet("m-brand-name", cfg.nombre_sitio, txt, back);
+  cfgSet("m-foot-name", cfg.nombre_sitio, txt, back);
+  cfgSet("m-hero-desc", cfg.descripcion, txt, back);
+  cfgSet("m-hero-cover", cfg.portada, function (el, v) { el.style.backgroundImage = "url('" + v + "')"; el.classList.add("has-image"); },
+    function (el, d) { el.style.backgroundImage = d.bg; el.classList.toggle("has-image", d.cls); });
+  cfgSet("m-btn-whatsapp", cfg.whatsapp, function (el, v) { el.href = v; }, function (el, d) { if (d.href == null) el.removeAttribute("href"); else el.setAttribute("href", d.href); });
+  cfgSet("m-stat-miembros", cfg.miembros_activos, stat, back);
+  cfgSet("m-stat-recursos", cfg.recursos_compartidos, stat, back);
+  cfgSet("m-stat-proyectos", cfg.proyectos_realizados, stat, back);
 
   var socialDesktop = socialLink("instagram", cfg.instagram, "text-foreground/70 hover:text-primary transition-colors") +
     socialLink("youtube", cfg.youtube, "text-foreground/70 hover:text-primary transition-colors") +
@@ -59,8 +61,11 @@ function applyConfig(rows) {
     socialLink("whatsapp", cfg.whatsapp, "text-foreground/60 hover:text-primary transition-colors");
   setHTML("m-social-footer", socialFooter);
 
+  qa("#m-logo-1, #m-logo-2").forEach(function (img) {
+    if (!img.__nxSrc) img.__nxSrc = img.getAttribute("src");
+    img.src = cfg.logo || img.__nxSrc;
+  });
   if (cfg.logo) {
-    qa("#m-logo-1, #m-logo-2").forEach(function (img) { img.src = cfg.logo; });
     var favicon = document.querySelector('link[rel="icon"]'); if (favicon) favicon.href = cfg.logo;
     window.NEXO_LOGO_URL = cfg.logo;
   }
